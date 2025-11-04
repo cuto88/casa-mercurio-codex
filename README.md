@@ -1,4 +1,4 @@
-# Casa Silea — Passivhaus Automations (Codex Project)
+# Casa Mercurio — Passivhaus Automations (Codex Project)
 
 > Generated on 2025-11-04T11:47:41
 
