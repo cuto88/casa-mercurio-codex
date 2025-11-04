@@ -1,0 +1,18 @@
+title: "6 — Surplus"
+views:
+  - title: "6 — Surplus — Plancia"
+    path: surplus
+    icon: mdi:solar-power
+    type: sections
+    max_columns: 3
+    sections:
+      - type: grid
+        title: "Stato & Comandi"
+        cards: []
+      - type: grid
+        title: "KPI"
+        cards: []
+      - type: grid
+        title: "Trend & Lock"
+        cards: []
+# Follow logica/regole_plancia2.txt for colors and structure.

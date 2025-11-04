@@ -1,0 +1,12 @@
+# Python/OS junk
+__pycache__/
+.DS_Store
+Thumbs.db
+
+# HA artifacts
+*.storage/
+*.db
+*.log
+
+# Backups
+backup/

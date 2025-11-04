@@ -1,0 +1,15 @@
+###############################################################################
+# Global energy — consolidated KPIs & charts
+# NOTE: This is a scaffold file. Replace or extend with your current logic.
+###############################################################################
+
+# Example structure (keep blocks under 'template:' or appropriate platforms)
+template:
+  - sensor: []
+  - binary_sensor: []
+  - trigger: []
+  - number: []
+  - select: []
+  - button: []
+
+# Add your automations / helpers below.

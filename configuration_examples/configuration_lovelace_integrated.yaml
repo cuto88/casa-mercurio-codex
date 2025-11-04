@@ -1,0 +1,48 @@
+# =====================================================================
+# LOVELACE — DASHBOARD DEFINITIONS (INTEGRATED MODE)
+# =====================================================================
+lovelace:
+  mode: yaml
+  dashboards:
+    1_vent-plancia:
+      mode: yaml
+      title: "1 — Ventilazione naturale"
+      icon: mdi:window-open-variant
+      show_in_sidebar: true
+      filename: lovelace/1_vent_plancia.yaml
+    2_vmc-plancia:
+      mode: yaml
+      title: "2 — VMC"
+      icon: mdi:hvac
+      show_in_sidebar: true
+      filename: lovelace/2_vmc_plancia.yaml
+    3_heating-plancia:
+      mode: yaml
+      title: "3 — Riscaldamento"
+      icon: mdi:radiator
+      show_in_sidebar: true
+      filename: lovelace/3_heating_plancia.yaml
+    4_ac-plancia:
+      mode: yaml
+      title: "4 — AC"
+      icon: mdi:air-conditioner
+      show_in_sidebar: true
+      filename: lovelace/4_ac_plancia.yaml
+    5_pm-plancia:
+      mode: yaml
+      title: "5 — Consumi"
+      icon: mdi:lightning-bolt
+      show_in_sidebar: true
+      filename: lovelace/5_pm_plancia.yaml
+    6_surplus-plancia:
+      mode: yaml
+      title: "6 — Surplus"
+      icon: mdi:solar-power
+      show_in_sidebar: true
+      filename: lovelace/6_surplus_plancia.yaml
+    9_global_energy-plancia:
+      mode: yaml
+      title: "9 — Energia Globale"
+      icon: mdi:earth
+      show_in_sidebar: true
+      filename: lovelace/9_global_energy_plancia.yaml
