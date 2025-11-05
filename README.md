@@ -24,11 +24,12 @@ logica/                     # Human-readable logic and design rules (authoritati
 
 packages/                   # HA YAML packages (editable by Codex)
   0_sensors.yaml            # core sensors & helpers (scaffold)
+  0_helpers_sensor.yaml
   1_vent.yaml               # natural ventilation automations (scaffold)
   2_vmc.yaml                # VMC automations (scaffold)
   3_heating.yaml            # heating automations (scaffold)
   4_ac.yaml                 # AC automations (scaffold)
-  5_powermeter_energy.yaml         # energy meters (scaffold)
+  6_powermeter_energy.yaml         # energy meters (scaffold)
   6_surplus_energy.yaml     # PV surplus logic (scaffold)
   6_global_energy.yaml      # global energy KPIs (scaffold)
   9_debug_sistema.yaml
