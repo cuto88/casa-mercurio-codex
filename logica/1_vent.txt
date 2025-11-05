@@ -1,47 +1,87 @@
 ###############################################################################
-# 1_ventilation.yaml — Summer Passive Ventilation (Silea, TV — IT)
+# 1_ventilation.yaml — Neuro-Ventilazione Estiva 2100 (Silea Orbital District)
 #
 # SCOPO
-#   Consigliare in stagione ESTIVA quando APRIRE/CHIUDERE le finestre in ottica
-#   Passivhaus (free-cooling notturno e controllo umidità), e mappare l’apertura
-#   manuale per stanza con timestamp.
+#   Consigliare e pre-orchestrare l’apertura/chiusura delle membrane finestra
+#   bioniche in ottica di free-cooling adattivo, equilibrio entalpico e qualità
+#   dell’aria quantificata (IAQ-Q). Integra anche il logging neurale delle azioni
+#   manuali con tracciamento temporale e contestuale.
 #
 # AMBITO
-#   • Valido solo per l’estate (maggio–settembre). In inverno la ventilazione è
-#     demandata alla VMC.
-#   • Località fissa: Silea (TV), Italia — lat 45.646, lon 12.273, tz Europe/Rome.
+#   • Modalità estiva dinamica (orbita eliostatica maggio–settembre) con fallback
+#     automatico a ventilazione VMC iperspettrale negli altri mesi.
+#   • Localizzazione ibrida: coordinate terrestri Silea (45.646N, 12.273E) +
+#     correzione climatica satellitare (lat_long_virtual) fornita dalla rete Meteo2100.
 #
-# STRATEGIA (criteri sintetici)
-#   • APRI (preferibilmente in fascia “night flush”) se T_out < T_in − ΔT_min
-#     e AH_out < AH_in − ΔAH_min, senza pioggia, con vento ≤ soglia e qualità
-#     aria esterna accettabile.
-#   • CHIUDI se non sono soddisfatti i criteri sopra, se piove, vento forte,
-#     T_out ≥ T_in o AH_out ≥ AH_in.
+# LIVELLO OPERATIVO 2025 (base di partenza)
+#   • Sensori minimi: temperatura e umidità interna per zona (es. climate, aqara),
+#     temperatura/umidità esterna + velocità vento da integrazione Meteo.it o OpenWeather,
+#     stato occupazione basato su presenza o pianificazione manuale.
+#   • Helper essenziali: `input_boolean.override_finestra_zone_X`, `input_number.delta_t_min`,
+#     `input_number.delta_ah_min`, `input_boolean.night_flush_attivo`.
+#   • Logica attivabile subito: automazione che consiglia/apre se `T_out < T_in - delta_t_min`
+#     e `UR_out < UR_in - soglia`, con notifica su app e card Lovelace “Ventilazione naturale”.
+#   • Documentare nella dashboard gli step manuali (aprire/chiudere finestre) e loggare gli esiti
+#     usando `input_text` o `logbook` standard. Nessuna dipendenza da orchestratore AI.
+#
+# STRATEGIA 2100 (criteri sintetici evoluti)
+#   • APRI (in particolare nella fascia “quantum night flush” preferita dalla
+#     bio-dinamica circadiana) quando:
+#       - T_out_effettiva < T_in - ΔT_min_adaptive (auto-calcolata 0.6–2.4 °C)
+#       - AH_out_corr < AH_in - ΔAH_min_adaptive (0.4–1.8 g/m³)
+#       - Indice IAQ esterno ≥ 0.72 (scala 0–1) e particolato < soglia stanza
+#       - Vento quantico ≤ soglia dinamica (default 8.5 m/s, modulato da facciata)
+#       - Nessun evento di pioggia acida/polvere rossa previsto nei prossimi 30 min
+#   • CHIUDI quando una delle condizioni sopra decade oppure se:
+#       - L’intelligenza biometrica segnala discomfort occupanti
+#       - Viene richiesto un ciclo di pressurizzazione da VMC o AC
+#       - Le membrane iniziano sequenza auto-pulente
 #
 # LOGICHE/DERIVATE
-#   • Calcoli microclimatici: dew point e umidità assoluta (g/m³) indoor/outdoor.
-#   • ΔT = T_in − T_out; ΔAH = AH_in − AH_out (si apre solo se entrambi > soglie).
-#   • Fascia oraria “night flush” di default 21:00–08:00 (regolabile).
+#   • Calcolo microclimatico avanzato: dew point, AH, entalpia specifica, indice
+#     di comfort termoigrometrico (TCI2100) e carico latente stimato.
+#   • ΔT e ΔAH calcolati con pesatura su flussi d’aria previsti (CFD semplificata).
+#   • Fascia “quantum night flush” default 20:30–07:30, con adattamento ±90 min
+#     in base a cronotipo utenti e previsioni meteo.
+#   • Integrazione con sensori solari sulle facciate: se irraggiamento > 200 W/m²,
+#     attivare microfrangisole invece dell’apertura totale.
 #
 # ENTITÀ CONTENUTE (file autonomo, senza dipendenze esterne)
-#   • Helper: input_boolean (override estate, finestre manuali per stanza),
-#              input_number (ΔT_min, ΔAH_min, soglia vento, backup T/RH indoor),
-#              input_datetime (timestamp ultimo cambio finestra),
-#              input_text (messaggio consiglio).
-#   • REST sensor: meteo esterno da Open-Meteo (senza API key): temperatura,
-#                  umidità relativa, precipitazione, vento; opzionale PM2.5.
-#   • Template sensor: fallback indoor (se mancano sensori reali), dew point,
-#                      umidità assoluta, ΔT, ΔAH, flag estate, finestra notturna,
-#                      blocco meteo, contatore finestre aperte.
-#   • Binary sensor: recommendation_open / recommendation_close.
-#   • Automation: aggiornamento messaggio di consiglio + notifica persistente;
-#                 mappatura timestamp al cambio dei toggle finestre.
+#   • Helper:
+#       - input_boolean: override_estate_2100, membrane_manual_zone_X.
+#       - input_number: delta_t_min_adaptive, delta_ah_min_adaptive,
+#         soglia_vento_quantum, comfort_threshold_user.
+#       - input_datetime: timestamp ultimo cambio finestra, orario flush dinamico.
+#       - input_text: messaggio consiglio + spiegazione IA.
+#   • REST/GraphQL sensor: Meteo2100 (temperatura percepita, umidità, polveri,
+#     vento vettoriale, piogge acide, qualità aria IAQ-Q, indice tempesta solare).
+#   • Template sensor: fallback indoor (rete neurale integrata), dew point,
+#     AH, entalpia, ΔT, ΔAH, indice comfort, finestra night-flush, blocchi meteo,
+#     contatore membrane aperte, scoreboard IA su efficacia notturna.
+#   • Binary sensor: recommendation_open, recommendation_close,
+#     membrane_autoclean_pending, biometrics_discomfort.
+#   • Automation: aggiornamento messaggio IA, notifica persistente su HUD,
+#     logging neurale (timeline + motivo), regolazione automatica soglie adattive.
 #
 # VALORI DI DEFAULT (tuning iniziale, ottimizzabili)
-#   • ΔT_min = 1.5 °C   • ΔAH_min = 1.0 g/m³   • Vento_max = 6.0 m/s
-#   • Mesi estate: 5–9   • Night flush: 21:00–08:00
+#   • ΔT_min_adaptive range 0.6–2.4 °C (default 1.2 °C)
+#   • ΔAH_min_adaptive range 0.4–1.8 g/m³ (default 0.9 g/m³)
+#   • Vento_quantum_max default 8.5 m/s (scende a 6 con bambini presenti)
+#   • Night flush dinamico: start 20:30, stop 07:30, modulati da AI ±90 min
 #
 # OBIETTIVO ECONOMICO/COMFORT
-#   • Massimizzare raffrescamento passivo notturno, ridurre carico di condizionamento,
-#     evitare apporti di umidità e disconfort (vento/pioggia/inquinanti).
+#   • Massimizzare free-cooling neurale, minimizzare uso climatizzazione attiva,
+#     mantenere IAQ-Q > 0.75 durante il sonno, ridurre carico entalpico sul PCM.
+#   • Fornire spiegazioni leggibili e post-analisi energetiche per ottimizzare le
+#     strategie di apertura tramite reinforcement learning domestico.
+#
+# ROADMAP 2025 → 2100
+#   1. Consolidare automazioni 2025 con sensori T/UR e vento disponibili, card Lovelace e
+#      notifiche push.
+#   2. Aggiungere template per dew point, AH e Δ entalpico sfruttando dati meteo estesi;
+#      introdurre logging su `input_text` o `assistente vocale`.
+#   3. Integrare feed Meteo2100/IAQ-Q quando la connettività e i sensori esterni saranno
+#      disponibili; sostituire i delta fissi con quelli adattivi.
+#   4. Collegare orchestratore AI (AppDaemon o servizio esterno) per supervisionare night flush
+#      e sincronizzarsi con VMC e smart-skin.
 ###############################################################################

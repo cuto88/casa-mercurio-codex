@@ -1,4 +1,4 @@
-# 🧭 Documento di riferimento — Struttura sistemi Casa Silea (Passivhaus-oriented)
+# 🧭 Documento di riferimento — Struttura sistemi Casa Silea 2100 (Passivhaus++)
 
 ## 🔍 Obiettivo generale
 Creazione di un **ecosistema modulare e coerente di automazioni Home Assistant** che gestisce:
@@ -7,7 +7,12 @@ Creazione di un **ecosistema modulare e coerente di automazioni Home Assistant**
 - **riscaldamento a pavimento**
 - **aria condizionata (AC)**
 
-secondo logiche **Passivhaus-oriented**, massimizzando comfort, efficienza e autonomia energetica, evitando conflitti tra sistemi.
+Partiamo dall’infrastruttura reale **2025** (sensori T/UR, meteo, contatori energia già installati) e proiettiamo una roadmap verso le logiche **Passivhaus++ futuristiche 2100** descritte nel materiale concettuale. Ogni modulo quindi esplicita:
+
+1. la **configurazione minima attivabile subito** con Home Assistant standard e sensori presenti;
+2. le **estensioni evolutive** necessarie per raggiungere l’esperienza 2100 (orchestratore AI, smart-skin, PCM, ecc.).
+
+Questo approccio consente di massimizzare comfort, efficienza e autonomia energetica senza rinunciare alla fattibilità operativa dell’impianto nel breve periodo, evitando conflitti tra sistemi.
 
 Ogni funzione è contenuta in un file indipendente `.yaml` (logica attiva) o `.txt` (documentazione e criteri), che definisce:
 - la **logica di attivazione** e le **priorità di arbitraggio**
@@ -23,7 +28,6 @@ Ogni funzione è contenuta in un file indipendente `.yaml` (logica attiva) o `.t
 /config
 │
 ├── /packages
-│   ├── /backup/              ← script e snapshot automatici
 │   ├── /logica/              ← documentazione tecnica e regole operative
 │   │    ├── _sistema.txt
 │   │    ├── 1_vent.txt
@@ -43,23 +47,14 @@ Ogni funzione è contenuta in un file indipendente `.yaml` (logica attiva) o `.t
 │   ├── 5_powermeter.yaml
 │   ├── 6_surplus_energy.yaml
 │   ├── 9_global_energy.yaml
-│   └── backup_shell.ps1
 │
 └── /lovelace
-    ├── resources.yaml
     ├── 1_vent_plancia.yaml
     ├── 2_vmc_plancia.yaml
     ├── 3_heating_plancia.yaml
     ├── 4_ac_plancia.yaml
     ├── 5_pm_plancia.yaml
-    ├── 6_surplus_plancia.yaml
-    └── /dashboards/
-         ├── 1_vent-plancia.yaml
-         ├── 2_vmc-plancia.yaml
-         ├── 3_heating-plancia.yaml
-         ├── 4_ac-plancia.yaml
-         ├── 5_pm-plancia.yaml
-         └── 6_surplus-plancia.yaml
+    └── 6_surplus_plancia.yaml
 ```
 
 ---
@@ -68,10 +63,10 @@ Ogni funzione è contenuta in un file indipendente `.yaml` (logica attiva) o `.t
 
 | Modulo | Logica | Scopo sintetico |
 |:--|:--|:--|
-| **Ventilazione naturale** | `1_vent.yaml` / `1_vent.txt` | Suggerisce quando aprire/chiudere finestre per free-cooling notturno e comfort estivo (ΔT e ΔAH). |
-| **VMC** | `2_vmc.yaml` / `2_vmc1.txt` | Gestisce priorità P0–P4: failsafe, bagno/boost, free-cooling PH o termico, anti-secco, baseline. Override AC notte. |
-| **Riscaldamento** | `3_heating.yaml` / `3_heating.txt` | Ottimizza il riscaldamento a pavimento in base a PV e comfort. Funzione “carica termica” 10-16. |
-| **AC** | `4_ac.yaml` / `4_ac.txt` | Gestisce modalità DRY/COOL, isteresi, anti-ciclo, lock, con priorità comfort. Blocchi notturni integrabili con VMC. |
+| **Ventilazione naturale** | `1_vent.yaml` / `1_vent.txt` | Coordina membrane bioniche per free-cooling quantico, controllo entalpico e IAQ neurale. |
+| **VMC** | `2_vmc.yaml` / `2_vmc.txt` | Gestisce priorità P-1–P5: quarantena bio, failsafe sensoriale, boost nano, free-cooling entalpico triplo, anti-secco 2.0, IAQ Prime. |
+| **Riscaldamento** | `3_heating.yaml` / `3_heating.txt` | Orquestra reti termoattive + PCM + geoscambio con AI predittiva e coach comfort personalizzato. |
+| **AC** | `4_ac.yaml` / `4_ac.txt` | Coordina DRY+, COOL HVR, radiant night, loop desiccante e sincronizzazione con VMC/energia. |
 | **Energia / PowerMeter** | `5_powermeter.yaml` | Rileva potenza e flussi (A/B), base per logiche di surplus e bilancio. |
 | **Surplus PV** | `6_surplus_energy.yaml` | Gestisce carichi e logiche di autoconsumo energetico intelligente. |
 | **Energia globale** | `9_global_energy.yaml` | Aggrega KPI, bilanci e grafici cumulativi. |
@@ -82,12 +77,12 @@ Ogni funzione è contenuta in un file indipendente `.yaml` (logica attiva) o `.t
 
 ## ⚙️ Principi di progettazione
 
-1. **Indipendenza logica** → ogni file YAML funziona da solo, senza dipendenze rigide.  
-2. **Arbitraggio chiaro** → priorità esplicite (es. `AC notte = DRY` forza VMC OFF).  
-3. **Trasparenza** → ogni plancia include la card “Come decide”, spiegazione leggibile per l’utente.  
-4. **Scalabilità** → sensori, lock, override e logging facilmente espandibili.  
-5. **Coerenza visiva** → tutti i moduli seguono `regole_plancia2.txt` (colori, layout, sezioni).  
-6. **Versionabilità** → la logica testuale (.txt) rimane sincronizzata con l’automazione YAML.  
+1. **Indipendenza logica** → ogni file YAML funziona da solo, orchestrato dall’AI ma senza dipendenze rigide.
+2. **Arbitraggio chiaro** → priorità esplicite (es. `Clima notte = DRY+` forza VMC OFF con scrubber minimo).
+3. **Trasparenza** → ogni plancia include card “Come decide” + spiegazione IA/coach leggibile.
+4. **Scalabilità** → sensori multispettrali, lock, override e logging neurale facilmente espandibili.
+5. **Coerenza visiva** → tutti i moduli seguono `regole_plancia2.txt` aggiornato (colori futuristici, layout orbitale).
+6. **Versionabilità** → la logica testuale (.txt) rimane sincronizzata con automazioni YAML e gemello digitale.
 
 ---
 

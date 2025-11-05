@@ -1,44 +1,69 @@
 # ========================================
-# Controllo Riscaldamento — Casa Silea (TV)
-# Logica Passivhaus autonoma (no conflitti)
+# Controllo Riscaldamento 2100 — Casa Silea Orbital
+# Logica Passivhaus++ autonoma (no conflitti)
 # ========================================
-# Obiettivo:
-# Utilizzare la casa come batteria termica a bassa entalpia, caricando
-# l’edificio nelle ore più favorevoli dal punto di vista energetico e solare,
-# mantenendo comfort e riducendo il tempo totale di accensione.
+# Livello operativo 2025 (impianto attuale):
+# - Sensori: termostati stanza (giorno, notte, bagno, lavanderia) + esterno.
+# - Attuatori: collettore riscaldamento a pavimento con pompe/elettrovalvole ON/OFF,
+#   eventuale caldaia/PDC controllata da `climate` principale.
+# - Helper minimi: `input_number.temp_target_giorno`, `input_number.temp_target_notte`,
+#   `input_boolean.heating_manual_override`, `input_boolean.boost_bagno`.
+# - Logica immediata: hysteresis 0.3–0.5°C su zone, programmazione oraria e
+#   notifica quando il target non è raggiunto entro 45 min.
+# - Dashboard: card con temperature, stato pompe, override manuali e grafico consumi.
+# - Obiettivo breve termine: comfort stabile con riduzione cicli ON/OFF e logbook
+#   degli interventi manuali.
+#
+# Obiettivo 2100:
+# Utilizzare l’involucro come accumulo termico bassa/media entalpia, caricando
+# l’edificio e la batteria PCM nelle ore di surplus energetico, mantenendo comfort
+# adattivo e riducendo runtime. Include raccomandazioni evolutive target.
 
 # Sistema:
-# - Impianto a pavimento → alta inerzia
-# - Ogni zona ha termostato dedicato, che entra in riduzione notturna via relè centralizzato
-# - Lo switch generale di attivazione riscaldamento è: switch.4_ch_interrutore_3
-# - I flussimetri sono regolabili manualmente e tarati inizialmente
+# - Reti termoattive integrate (pavimento + pareti + soffitto radiante)
+# - Ogni zona gestita da nodo termo-neurale con riduzione circadiana automatica
+# - Switch generale riscaldamento: switch.thermal_core_master
+# - Flussimetri auto-bilancianti + monitoraggio portata in tempo reale
+# - Batteria termica PCM collegata a geoscambio modulare
 
 # Temperatura target:
-# - Valore comfort iniziale: 21°C
-# - Modificabile tramite input_number.temp_target_risc (se configurato)
-# - Sensori disponibili: giorno, notte1, bagno, esterna
+# - Comfort base 21.5°C inverno, 20.5°C mezze stagioni
+# - Modificabile via input_number.temp_target_risc_2100 e profili persona
+# - Sensori disponibili: giorno, notte1/2/3, bagno, lavanderia, esterna, PCM_core
 
-# Fascia ottimale di attivazione (fotovoltaico attivo):
-# - Giornaliera: 10:00 → 16:00
-# - Regolabile via input_datetime o fasce fisse
-# - Obiettivo: anticipare la dispersione attesa e preriscaldare
+# Fasce ottimali di attivazione (energia rinnovabile):
+# - Finestre PV/geo: 09:30 → 16:30 (dinamiche) + slot serale se surplus idrogeno
+# - Regolabile via input_datetime + algoritmo previsioni Meteo2100 e rete energia
+# - Obiettivo: pre-caricare involucro prima di ondate fredde o picchi domanda
 
 # Logica attivazione:
-# - Si accende solo se almeno una stanza < target - tolleranza (es. 0,5°C)
-# - Si accende solo se orario in fascia utile
-# - Si accende solo se la temperatura esterna è tale da causare dispersione significativa
-# - Se previste giornate soleggiate, può essere posticipata l’accensione
-# - Se l’umidità ambientale è elevata (> 65%), evitare over-riscaldamento
+# - Attiva se almeno una stanza < target - tolleranza adattiva (0.4–0.8°C)
+# - Attiva se fascia utile oppure se IA prevede perdita >1.5°C nelle 6h successive
+# - Considera temperatura esterna, vento e indice dispersione facciata (ThermalLeak)
+# - Se previste giornate soleggiate con guadagni > 4 kWh, ritarda accensione
+# - Se UR interna > 65%, limita potenza e privilegia deumidifica
+# - Se occupancy bassa, sposta energia su PCM (modalità “preload”)
 
-# Logica futura:
-# - Analisi curva di decadimento termico per ogni zona
-# - Predizione oraria dei °C persi/h con modello lineare o regressivo
-# - Automazione flussi PV / energia disponibile (accensione solo in surplus)
-# - Ottimizzazione dell'inerzia tramite bilanciamento flussi termici (flussimetri)
+# Logica avanzata 2100:
+# - Analisi curva decadimento termico per ogni zona (machine learning autoregressivo)
+# - Predizione dinamica °C persi/h e adattamento soglie
+# - Automazione flussi PV/geo/surplus idrogeno (attiva solo in surplus energetico)
+# - Bilanciamento flussi termici tramite valvole proporzionali auto-regolate
+# - Feedback IA su comfort personale e raccomandazioni target personalizzate
 
 # Espandibile:
-# - Possibilità di aggiungere sensori temperatura stanza (notte2, notte3, lavanderia)
-# - Possibile switch logico per ignorare il bagno o prioritarlo (es. mattina)
-# - Logging giornaliero per analisi consumi / ore attive
+# - Sensori biometria sonno per modulare zone notte
+# - Integrazione con scambiatori facciata per recupero calore esausto
+# - Logging giornaliero + analitiche IA per ottimizzare curva di carico
 
-consigliare miglioramenti e target temperatura
+# Consigliare miglioramenti e target temperatura in Lovelace tramite card “Coach”
+
+# Roadmap 2025 → 2100
+# 1. Stabilizzare le curve orarie e i delta ON/OFF con i sensori esistenti, aggiungendo
+#    template di potenza termica stimata e consumo caldaia/PDC.
+# 2. Integrare previsioni meteo (Open-Meteo/Met.no) e input energia (PV, tariffa) per
+#    gestire pre-carica involucro e fasce di risparmio.
+# 3. Aggiungere controllo modulante delle valvole/flussimetri (se hardware supporta)
+#    e batteria PCM con logica di priorità.
+# 4. Collegare orchestratore AI / gemello digitale per ottimizzare curve predittive e
+#    personalizzare comfort circadiano.
