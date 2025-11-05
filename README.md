@@ -24,7 +24,7 @@ logica/                     # Human-readable logic and design rules (authoritati
 
 packages/                   # HA YAML packages (editable by Codex)
   0_sensors.yaml            # core sensors & helpers (scaffold)
-  0_helpers_sensor.yaml
+  0_helpers_sensor.yaml     # Mapping sensori fisici (anti-rottura)
   1_vent.yaml               # natural ventilation automations (scaffold)
   2_vmc.yaml                # VMC automations (scaffold)
   3_heating.yaml            # heating automations (scaffold)
