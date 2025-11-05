@@ -1,27 +1,41 @@
 graph TD
-    VMC["VMC Centrale"]
-    AC_G["AC Giorno"]
-    AC_N["AC Notte"]
-    Pav["Riscaldamento a Pavimento"]
-    Scal["Scaldasalviette Bagno"]
+    %% Livello attuale 2025: sistemi VMC/AC/riscaldamento operativi con automazioni HA standard
+    %% Livello evolutivo 2100: orchestratore AI, smart-skin e batteria PCM completamente integrate
+    Orchestrator["AI Orchestrator 2100\n(Q-Edge Mesh)\n(fase futura)"]
+    VMC["VMC Iperspettrale\n(ricambio + scrubber CO₂)"]
+    AC_G["Clima Giorno\n(HVR + radiant ceiling)"]
+    AC_N["Clima Notte\n(sonno circadiano)"]
+    Pav["Reti termoattive\n(pavimento + pareti)"]
+    Scal["Scaldasalviette\nnanotubolare"]
+    Facade["Facade Smart-Skin\n(pannelli fototermici)\n"]
+    Storage["Batteria termica\nPCM + serbatoi fasi"]
+
+    Orchestrator -. roadmap .-> VMC
+    Orchestrator -. roadmap .-> AC_G
+    Orchestrator -. roadmap .-> AC_N
+    Orchestrator -. roadmap .-> Pav
+    Orchestrator -. roadmap .-> Facade
+    Orchestrator -. roadmap .-> Storage
 
     subgraph Giorno
-        G_S["Sensore T/UR"]
-        G_M["2 Mandate VMC"]
-        G_R["2 Riprese VMC"]
-        G_T["Termostato Pavimento"]
-        AC_G --> Giorno
-        Pav --> G_T
+        G_S["Sensori T/UR/CO₂/PM\n+ fotoni solari"]
+        G_M["Mandate VMC\nsoniche modulanti"]
+        G_R["Riprese VMC\n+ scrubber VOC"]
+        G_T["Nodo termoattivo\nzona giorno"]
+        Facade --> G_S
         VMC --> G_M
         VMC --> G_R
+        Pav --> G_T
+        AC_G --> Giorno
+        Storage --> Giorno
     end
 
     subgraph Notte
-        N1["Notte1: Sensore T/UR + 2 Mandate + Termostato Pavimento"]
-        N2["Notte2: Sensore T/UR + 1 Mandata + Termostato Pavimento"]
-        N3["Notte3: Sensore T/UR + 1 Mandata + Termostato Pavimento"]
-        Bagno["Bagno: Sensore T/UR + 2 Riprese + Termostato Scaldasalviette"]
-        Lav["Lavanderia: 2 Riprese"]
+        N1["Notte1: bio-sensore\nsonno + termoattivo"]
+        N2["Notte2: bio-sensore\n+ mandata mirata"]
+        N3["Notte3: bio-sensore\n+ mandata mirata"]
+        Bagno["Bagno: sensori vapore\n+ specchio anti-condensa"]
+        Lav["Lavanderia: ricircolo\nionico"]
         AC_N --> Notte
         Pav --> N1
         Pav --> N2
@@ -30,6 +44,7 @@ graph TD
         VMC --> N1
         VMC --> N2
         VMC --> N3
+        Storage --> Notte
         Bagno --> VMC
         Lav --> VMC
     end
