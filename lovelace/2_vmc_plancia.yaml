@@ -1,18 +1,289 @@
-title: "2 — VMC"
 views:
-  - title: "2 — VMC — Plancia"
-    path: vmc
-    icon: mdi:hvac
+  - title: "VMC — Plancia"
     type: sections
     max_columns: 3
+    icon: mdi:hvac
+
     sections:
+      # -------------------------------------------------------------------
+      # 1) STATO & COMANDI RAPIDI
+      # -------------------------------------------------------------------
       - type: grid
-        title: "Stato & Comandi"
-        cards: []
+        cards:
+          - type: glance
+            title: Stato logiche / Attuatori
+            show_name: true
+            show_state: true
+            state_color: true
+            entities:
+              - entity: switch.vmc_vel_0
+                name: vel_0 (spento)
+                icon: mdi:fan-off
+              - entity: switch.vmc_vel_1
+                name: vel_1 (baseline)
+                icon: mdi:fan-speed-1
+              - entity: switch.vmc_vel_2
+                name: vel_2 (free-cooling)
+                icon: mdi:fan-speed-2
+              - entity: switch.vmc_vel_3
+                name: vel_3 (boost bagno)
+                icon: mdi:fan-speed-3
+              - entity: switch.ac_notte
+                name: AC Notte (DRY)
+                icon: mdi:weather-night
+              - entity: switch.ac_giorno
+                name: AC Giorno
+                icon: mdi:weather-sunny
+
+          - type: horizontal-stack
+            cards:
+              - type: button
+                name: Forza vel_0
+                icon: mdi:fan-off
+                tap_action:
+                  action: call-service
+                  service: switch.turn_on
+                  service_data:
+                    entity_id: switch.vmc_vel_0
+              - type: button
+                name: Forza vel_1
+                icon: mdi:fan-speed-1
+                tap_action:
+                  action: call-service
+                  service: switch.turn_on
+                  service_data:
+                    entity_id: switch.vmc_vel_1
+              - type: button
+                name: Forza vel_2
+                icon: mdi:fan-speed-2
+                tap_action:
+                  action: call-service
+                  service: switch.turn_on
+                  service_data:
+                    entity_id: switch.vmc_vel_2
+              - type: button
+                name: Forza vel_3
+                icon: mdi:fan-speed-3
+                tap_action:
+                  action: call-service
+                  service: switch.turn_on
+                  service_data:
+                    entity_id: switch.vmc_vel_3
+
+          - type: entities
+            title: Modalità manuale
+            show_header_toggle: false
+            entities:
+              - entity: input_boolean.vmc_manual
+                name: Manuale attivo
+              - entity: input_select.vmc_manual_speed
+                name: Velocità manuale (OFF/vel_0/1/2/3)
+              - entity: timer.vmc_manual_timeout
+                name: Timeout manuale (opz.)
+                secondary_info: last-changed
+
+      # -------------------------------------------------------------------
+      # 2) KPI PRINCIPALI
+      # -------------------------------------------------------------------
       - type: grid
-        title: "KPI"
-        cards: []
+        cards:
+          - type: entities
+            title: KPI — Umidità e soglie bagno (Verde)
+            show_header_toggle: false
+            entities:
+              - entity: sensor.umidita_bagno
+                name: UR Bagno
+                icon: mdi:shower
+                icon_color: green
+              - entity: input_number.vmc_bagno_on
+                name: Soglia ON (UR%)
+              - entity: input_number.vmc_bagno_off
+                name: Soglia OFF (UR%)
+              - type: divider
+              - entity: sensor.umidita_esterna
+                name: UR Esterna (Rosso)
+                icon: mdi:weather-cloudy
+                icon_color: red
+              - entity: sensor.temperatura_interna_media
+                name: T Interna media (Giallo/Blu)
+              - entity: sensor.temperatura_esterna
+                name: T Esterna (Rosso)
+
+          - type: entities
+            title: Free-cooling PH (ΔT/ΔAH)
+            show_header_toggle: false
+            entities:
+              - entity: input_number.vmc_fc_ph_tin_on
+                name: Soglia Tin ON (°C)
+              - entity: sensor.ah_interna
+                name: AH interna (g/m³)
+              - entity: sensor.ah_esterna
+                name: AH esterna (g/m³)
+
+          - type: entities
+            title: Anti-secco (inverno)
+            show_header_toggle: false
+            entities:
+              - entity: input_number.vmc_anti_secco_ur_min
+                name: UR minima consentita (%)
+              - entity: sensor.umidita_interna_min
+                name: UR interna minima (%)
+              - entity: binary_sensor.vmc_p3_anti_secco_attivo
+                name: P3 attivo (badge backend)
+
+      # -------------------------------------------------------------------
+      # 3) TREND & LOCK
+      # -------------------------------------------------------------------
       - type: grid
-        title: "Trend & Lock"
-        cards: []
-# Follow logica/regole_plancia2.txt for colors and structure.
+        cards:
+          - type: entities
+            title: Lock & tempi min/max (info)
+            show_header_toggle: false
+            entities:
+              - entity: switch.vmc_vel_3
+                name: Boost attivo? (min-ON 3')
+                secondary_info: last-changed
+              - entity: switch.vmc_vel_2
+                name: Free-cooling attivo? (lock 15')
+                secondary_info: last-changed
+              - entity: switch.ac_notte
+                name: DRY Notte (min-ON 30'/max 120')
+                secondary_info: last-changed
+              - entity: switch.ac_giorno
+                name: DRY Giorno (min-ON 30'/max 120')
+                secondary_info: last-changed
+
+          # UR: colori regola → Bagno=verde, Esterno=rosso; soglie nere
+          - type: custom:mini-graph-card
+            name: UR bagno vs esterno — 24h
+            hours_to_show: 24
+            points_per_hour: 6
+            show:
+              labels: true
+              legend: true
+              fill: false
+            line_width: 2
+            entities:
+              - entity: sensor.umidita_bagno
+                name: UR Bagno
+                color: "#22c55e"
+              - entity: sensor.umidita_esterna
+                name: UR Esterna
+                color: "#ef4444"
+              - entity: sensor.vmc_bagno_soglia_on
+                name: Soglia ON
+                color: black
+                show_points: false
+              - entity: sensor.vmc_bagno_soglia_off
+                name: Soglia OFF
+                color: black
+                show_points: false
+
+          # T: solo mini-graph-card con range comfort (due linee orizzontali nere)
+          - type: custom:mini-graph-card
+            name: T interna/esterna — 24h
+            hours_to_show: 24
+            points_per_hour: 6
+            show:
+              labels: true
+              legend: true
+              fill: false
+            line_width: 2
+            entities:
+              - entity: sensor.temperatura_interna_media
+                name: T interna
+                color: "#3b82f6"
+              - entity: sensor.temperatura_esterna
+                name: T esterna
+                color: "#ef4444"
+              - entity: sensor.comfort_tmin
+                name: Tmin comfort
+                color: black
+                show_points: false
+              - entity: sensor.comfort_tmax
+                name: Tmax comfort
+                color: black
+                show_points: false
+
+          - type: history-graph
+            title: Velocità VMC — 24h
+            hours_to_show: 24
+            refresh_interval: 30
+            entities:
+              - entity: switch.vmc_vel_0
+                name: vel_0
+              - entity: switch.vmc_vel_1
+                name: vel_1
+              - entity: switch.vmc_vel_2
+                name: vel_2
+              - entity: switch.vmc_vel_3
+                name: vel_3
+
+      # -------------------------------------------------------------------
+      # 4) DEBUG (sensori grezzi)
+      # -------------------------------------------------------------------
+      - type: grid
+        cards:
+          - type: entities
+            title: Debug sensori (grezzi)
+            show_header_toggle: false
+            entities:
+              - entity: sensor.umidita_bagno
+                name: UR bagno
+              - entity: sensor.umidita_esterna
+                name: UR esterna
+              - entity: sensor.umidita_interna_media
+                name: UR interna media
+              - entity: sensor.temperatura_interna_media
+                name: T interna media
+              - entity: sensor.temperatura_esterna
+                name: T esterna
+              - entity: sensor.ah_interna
+                name: AH interna
+              - entity: sensor.ah_esterna
+                name: AH esterna
+
+      # -------------------------------------------------------------------
+      # 5) SPIEGAZIONI & PRIORITÀ (in fondo, senza colori)
+      # -------------------------------------------------------------------
+      - type: grid
+        cards:
+          - type: markdown
+            title: Priorità attuale
+            content: |
+              **{{ states('sensor.vmc_priority') }}** → velocità attiva derivata dagli switch vel_0/1/2/3 e dagli override.
+
+          - type: entities
+            title: Perché adesso?
+            show_header_toggle: false
+            entities:
+              - entity: sensor.vmc_priority
+                name: Priorità calcolata
+              - entity: sensor.vmc_reason
+                name: Motivo sintetico
+              - entity: sensor.vmc_last_event
+                name: Ultimo evento logico
+
+          - type: markdown
+            title: Come decide (P0→P4 + P1B)
+            content: |
+              Arbitraggio top‑down (prima condizione vera prende il controllo):
+              - **P0 Failsafe** → vel_0 se sensori KO/unknown o mismatch critici.
+              - **Override AC notte = DRY** → vel_0 per non vanificare la deumidifica.
+              - **P1 Bagno/Boost** → vel_3 (start a UR_bagno ≥ soglia o ΔUR alto; stop con isteresi + lock).
+              - **P2 Free‑cooling** (sdoppiato):
+                • **Passivhaus (PH)** se Tin>24°C, Tout<Tin e AHout<AHin (lock 15').
+                • **Macchina (termico)** se Tin>24°C e 20°C< Tout <Tin (lock 15').
+                • Se entrambi veri prevale **PH**.
+              - **P3 Anti‑secco (inverno notte)** → vel_0 (duty IAQ 5’/30’) se UR_min ≤ soglia.
+              - **P4 Baseline** → vel_1 (ricambio minimo / watchdog).
+
+          - type: markdown
+            title: Note operative
+            content: |
+              • **P1 reattivo**: parte a `UR_bagno ≥ vmc_bagno_on` o `ΔUR≥10%`; stop a `UR_bagno ≤ vmc_bagno_off` e `|ΔUR|≤5%`. Lock ingresso 10’, cooldown 5’.  
+              • **Escalation DRY** (se implementata altrove): se vel_3 inefficace per cicli ripetuti, valuta AC Notte in DRY mantenendo VMC a vel_1 per IAQ.  
+              • **P2 PH**: Tin > 24°C, Tout < Tin, AHout < AHin → vel_2 (lock 15’).  
+              • **P2 Macchina**: Tin > 24°C, 20°C < Tout < Tin → vel_2 (lock 15’).  
+              • **P3**: mesi 11–3 e 23:00–07:00 con `UR_interna_min ≤ vmc_anti_secco_ur_min` → vel_0 (duty 5’/30’).  
+              • **Baseline**: se nessuna logica è attiva per >10’ → vel_1 (watchdog).

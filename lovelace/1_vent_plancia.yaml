@@ -1,18 +1,169 @@
-title: "1 — Ventilazione naturale"
 views:
-  - title: "1 — Ventilazione naturale — Plancia"
+  - title: Finestre (Vent estiva)
     path: vent
     icon: mdi:window-open-variant
     type: sections
-    max_columns: 3
+    max_columns: 3   # 3 colonne fisse su desktop; stesso ordine su mobile
+
     sections:
+
+      # ===== Colonna 1 — CONSIGLIO + CHECKLIST ===============================
       - type: grid
-        title: "Stato & Comandi"
-        cards: []
+        cards:
+
+          # Consiglio sintetico (ON = apri, OFF = chiudi)
+          - type: conditional
+            conditions:
+              - entity: binary_sensor.vent_freecooling_calcolato
+                state: "on"
+            card:
+              type: markdown
+              content: |
+                ## ✅ Apri le finestre adesso
+                *Fuori è più fresco **e** più secco → raffreschi e deumidifichi gratis.*
+
+          - type: conditional
+            conditions:
+              - entity: binary_sensor.vent_freecooling_calcolato
+                state: "off"
+            card:
+              type: markdown
+              content: |
+                ## 🛑 Tieni le finestre chiuse
+                *In questo momento non conviene scambiare aria con l'esterno.*
+
+          # Checklist LIVE con icone verdi/rosse (nessuna custom-card, solo markdown templato)
+          - type: markdown
+            title: Criteri per "Apri finestre"
+            content: >
+              {% set Ti  = states('sensor.temperatura_interna_media')|float(0) %}
+              {% set To  = states('sensor.temperatura_esterna')|float(0) %}
+              {% set Ai  = states('sensor.ah_interna')|float(0) %}
+              {% set Ao  = states('sensor.ah_esterna')|float(0) %}
+              {% set dT  = (Ti - To)|round(1) %}
+              {% set dAH = (Ai - Ao)|round(1) %}
+              {# Soglie usate anche dalla VMC: puoi regolarle da UI #}
+              {% set T_on  = states('input_number.vmc_fc_t_in_on')|float(24) %}
+              {% set ToMin = states('input_number.vmc_fc_t_out_min')|float(20) %}
+
+              Si consiglia di **aprire** quando:
+
+              - {% if Ti > T_on %}✅{% else %}❌{% endif %} **Ti > {{ T_on|round(1) }} °C**
+                *(attuale: **{{ Ti|round(1) }} °C**)*
+              - {% if To < Ti %}✅{% else %}❌{% endif %} **To < Ti** *(ΔT = **{{ dT }} °C**)*
+              - {% if To > ToMin %}✅{% else %}❌{% endif %} **To > {{ ToMin|round(1) }} °C**
+                *(attuale: **{{ To|round(1) }} °C**)*
+              - {% if dAH > 0 %}✅{% else %}❌{% endif %} **ΔAH = Ai − Ao > 0 g/m³**
+                *(Ai **{{ Ai|round(1) }}**, Ao **{{ Ao|round(1) }}**, ΔAH **{{ dAH }} g/m³**)*
+
+              **Esito:** {% if Ti > T_on and To < Ti and To > ToMin and dAH > 0 %}
+              ✅ *Apri le finestre*
+              {% else %}
+              🛑 *Tieni chiuse*
+              {% endif %}
+
+          # Indicatore visivo dei due driver principali (ΔT e ΔAH)
+          - type: horizontal-stack
+            cards:
+              - type: gauge
+                entity: sensor.deltat_in_out
+                name: ΔT (Ti − To)
+                min: -15
+                max: 15
+                severity:
+                  green: -15   # verde se fuori è più freddo (ΔT negativo forte)
+                  yellow: 0
+                  red: 5
+              - type: gauge
+                entity: sensor.deltaah_in_out
+                name: ΔAH (Ai − Ao)
+                min: -10
+                max: 10
+                severity:
+                  green: 0     # verde se ΔAH > 0 → fuori più secco
+                  yellow: -1
+                  red: -5
+
+      # ===== Colonna 2 — PARAMETRI ORDINATI =================================
       - type: grid
-        title: "KPI"
-        cards: []
+        cards:
+
+          - type: entities
+            title: Temperature
+            show_header_toggle: false
+            entities:
+              - entity: sensor.temperatura_interna_media
+                name: T interna (Ti)
+              - entity: sensor.temperatura_esterna
+                name: T esterna (To)
+              - entity: sensor.deltat_in_out
+                name: ΔT = Ti − To
+
+          - type: entities
+            title: Umidità assoluta (g/m³)
+            show_header_toggle: false
+            entities:
+              - entity: sensor.ah_interna
+                name: AH interna (Ai)
+              - entity: sensor.ah_esterna
+                name: AH esterna (Ao)
+              - entity: sensor.deltaah_in_out
+                name: ΔAH = Ai − Ao
+
+          - type: entities
+            title: Umidità relativa & Dew point
+            show_header_toggle: false
+            entities:
+              - entity: sensor.umidita_interna_media
+                name: UR interna
+              - entity: sensor.umidita_esterna
+                name: UR esterna
+              - entity: sensor.dewpoint_interno
+                name: Dew point interno
+
+      # ===== Colonna 3 — SENSOR CARD "TEMPERATURE" + TREND ===================
       - type: grid
-        title: "Trend & Lock"
-        cards: []
-# Follow logica/regole_plancia2.txt for colors and structure.
+        cards:
+
+          # SEZIONE "Sensor card" come nello screenshot
+          - type: sensor
+            entity: sensor.temperatura_interna_media
+            name: T interna (media)
+            graph: line
+            detail: 2
+            hours_to_show: 24
+
+          - type: sensor
+            entity: sensor.temperatura_giorno
+            name: Zona giorno
+            graph: line
+            detail: 2
+            hours_to_show: 24
+
+          - type: sensor
+            entity: sensor.temperatura_notte1
+            name: Zona notte
+            graph: line
+            detail: 2
+            hours_to_show: 24
+
+          - type: sensor
+            entity: sensor.temperatura_bagno
+            name: Bagno
+            graph: line
+            detail: 2
+            hours_to_show: 24
+
+          - type: sensor
+            entity: sensor.temperatura_esterna
+            name: T esterna
+            graph: line
+            detail: 2
+            hours_to_show: 24
+
+          - type: sensor
+            entity: sensor.dewpoint_interno
+            name: Dew point interno
+            graph: line
+            detail: 2
+            hours_to_show: 24

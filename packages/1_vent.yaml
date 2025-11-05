@@ -1,15 +1,63 @@
 ###############################################################################
-# Summer natural ventilation — automations & helpers
-# NOTE: This is a scaffold file. Replace or extend with your current logic.
+# 1_vent.yaml — Ventilazione estiva (usa i KPI canonici da 0_sensors)
 ###############################################################################
 
-# Example structure (keep blocks under 'template:' or appropriate platforms)
 template:
-  - sensor: []
-  - binary_sensor: []
-  - trigger: []
-  - number: []
-  - select: []
-  - button: []
+  - sensor:
 
-# Add your automations / helpers below.
+      # (opzionale) specchio della AH esterna
+      - name: vent_ah_esterna_ref
+        unique_id: vent_ah_esterna_ref
+        unit_of_measurement: "g/m³"
+        icon: mdi:water-percent
+        state_class: measurement
+        state: "{{ states('sensor.ah_esterna') }}"
+        availability: "{{ states('sensor.ah_esterna') not in ['unknown','unavailable',''] }}"
+
+      - name: vent_deltaAH_in_out
+        unique_id: vent_deltaah_in_out
+        unit_of_measurement: "g/m³"
+        icon: mdi:water-percent
+        state_class: measurement
+        state: >
+          {% set Ai = states('sensor.ah_interna')|float(none) %}
+          {% set Ao = states('sensor.ah_esterna')|float(none) %}
+          {{ (Ai - Ao)|round(2) if Ai is number and Ao is number else iif(false,'unavailable') }}
+        availability: >
+          {{ states('sensor.ah_interna') not in ['unknown','unavailable',''] and
+             states('sensor.ah_esterna') not in ['unknown','unavailable',''] }}
+
+      - name: vent_deltaT_in_out
+        unique_id: vent_deltat_in_out
+        unit_of_measurement: "°C"
+        device_class: temperature
+        icon: mdi:thermometer
+        state_class: measurement
+        state: >
+          {% set Ti = states('sensor.temperatura_interna_media')|float(none) %}
+          {% set To = states('sensor.temperatura_esterna')|float(none) %}
+          {{ (Ti - To)|round(1) if Ti is number and To is number else iif(false,'unavailable') }}
+        availability: >
+          {{ states('sensor.temperatura_interna_media') not in ['unknown','unavailable',''] and
+             states('sensor.temperatura_esterna') not in ['unknown','unavailable',''] }}
+
+binary_sensor:
+  - platform: template
+    sensors:
+      vent_freecooling_calcolato:
+        unique_id: vent_freecooling_calcolato
+        friendly_name: "Vent Freecooling calcolato"
+        device_class: cold
+        value_template: >
+          {% set Ti  = states('sensor.temperatura_interna_media')|float(none) %}
+          {% set To  = states('sensor.temperatura_esterna')|float(none) %}
+          {% set dAH = states('sensor.deltaah_in_out')|float(none) %}  {# usa il KPI canonico #}
+          {% if Ti is number and To is number and dAH is number %}
+            {{ Ti > 24 and To < Ti and To > 20 and dAH < 0 }}
+          {% else %}
+            false
+          {% endif %}
+        availability_template: >
+          {{ states('sensor.temperatura_interna_media') not in ['unknown','unavailable',''] and
+             states('sensor.temperatura_esterna') not in ['unknown','unavailable',''] and
+             states('sensor.deltaah_in_out')        not in ['unknown','unavailable',''] }}

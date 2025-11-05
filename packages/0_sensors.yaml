@@ -1,15 +1,196 @@
 ###############################################################################
-# Core sensors & helpers
-# NOTE: This is a scaffold file. Replace or extend with your current logic.
+# 0_sensors.yaml — KPI canonici per climatica/ventilazione
 ###############################################################################
 
-# Example structure (keep blocks under 'template:' or appropriate platforms)
 template:
-  - sensor: []
-  - binary_sensor: []
-  - trigger: []
-  - number: []
-  - select: []
-  - button: []
+  - sensor:
+      # === TEMPERATURE INTERNE (MEDIA) ===
+      - name: temperatura_interna_media
+        unique_id: temperatura_interna_media
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+        icon: mdi:thermometer
+        state: >
+          {% set g = states('sensor.temperatura_giorno')|float(none) %}
+          {% set n = states('sensor.temperatura_notte1')|float(none) %}
+          {% set b = states('sensor.temperatura_bagno')|float(none) %}
+          {% set vals = [g, n, b] %}
+          {% set nums = vals | select('!=', none) | list %}
+          {{ ((nums | sum) / (nums | count)) | round(1) if (nums | count) > 0 else 'unavailable' }}
+        availability: >
+          {{ states('sensor.temperatura_giorno') not in ['unknown','unavailable',''] or
+             states('sensor.temperatura_notte1') not in ['unknown','unavailable',''] or
+             states('sensor.temperatura_bagno')      not in ['unknown','unavailable',''] }}
 
-# Add your automations / helpers below.
+      # === UMIDITÀ INTERNA (MINIMA e MEDIA) ===
+      - name: umidita_interna_min
+        unique_id: umidita_interna_min
+        unit_of_measurement: "%"
+        device_class: humidity
+        state_class: measurement
+        icon: mdi:water-percent
+        state: >
+          {% set g = states('sensor.umidita_zona_giorno')|float(none) %}
+          {% set n = states('sensor.umidita_zona_notte')|float(none) %}
+          {% set b = states('sensor.umidita_bagno')|float(none) %}
+          {% set vals = [g, n, b] | select('!=', none) | list %}
+          {{ (vals|min) | round(1) if (vals|count) > 0 else 'unavailable' }}
+        availability: >
+          {{ states('sensor.umidita_zona_giorno') not in ['unknown','unavailable',''] or
+             states('sensor.umidita_zona_notte') not in ['unknown','unavailable',''] or
+             states('sensor.umidita_bagno')      not in ['unknown','unavailable',''] }}
+
+      - name: umidita_interna_media
+        unique_id: umidita_interna_media
+        unit_of_measurement: "%"
+        device_class: humidity
+        state_class: measurement
+        icon: mdi:water-percent
+        state: >
+          {% set g = states('sensor.umidita_zona_giorno')|float(none) %}
+          {% set n = states('sensor.umidita_zona_notte')|float(none) %}
+          {% set b = states('sensor.umidita_bagno')|float(none) %}
+          {% set vals = [g, n, b] %}
+          {% set nums = vals | select('!=', none) | list %}
+          {{ ((nums | sum) / (nums | count)) | round(1) if (nums | count) > 0 else 'unavailable' }}
+        availability: >
+          {{ states('sensor.umidita_zona_giorno') not in ['unknown','unavailable',''] or
+             states('sensor.umidita_zona_notte') not in ['unknown','unavailable',''] or
+             states('sensor.umidita_bagno')      not in ['unknown','unavailable',''] }}
+
+      # AH interna (g/m³) — 1 decimale
+      - name: ah_interna
+        unique_id: ah_interna
+        unit_of_measurement: "g/m³"
+        icon: mdi:water-percent
+        state_class: measurement
+        state: >
+          {% set T = states('sensor.temperatura_interna_media')|float(none) %}
+          {% set RH = states('sensor.umidita_interna_media')|float(none) %}
+          {% if T is number and RH is number %}
+            {% set RHp = RH if RH > 1 else RH*100 %}
+            {% set es = 6.112 * e**((17.67*T)/(T+243.5)) %}
+            {{ ((2.1674 * RHp * es) / (273.15+T)) | round(1) }}
+          {% else %}unavailable{% endif %}
+        availability: >
+          {{ states('sensor.temperatura_interna_media') not in ['unknown','unavailable',''] and
+             states('sensor.umidita_interna_media')      not in ['unknown','unavailable',''] }}
+
+      # AH esterna (g/m³) — 1 decimale
+      - name: ah_esterna
+        unique_id: ah_esterna
+        unit_of_measurement: "g/m³"
+        icon: mdi:water-percent
+        state_class: measurement
+        state: >
+          {% set T = states('sensor.temperatura_esterna')|float(none) %}
+          {% set RH = states('sensor.umidita_esterna')|float(none) %}
+          {% if T is number and RH is number %}
+            {% set RHp = RH if RH > 1 else RH*100 %}
+            {% set es = 6.112 * e**((17.67*T)/(T+243.5)) %}
+            {{ ((2.1674 * RHp * es) / (273.15+T)) | round(1) }}
+          {% else %}unavailable{% endif %}
+        availability: >
+          {{ states('sensor.temperatura_esterna') not in ['unknown','unavailable',''] and
+             states('sensor.umidita_esterna')      not in ['unknown','unavailable',''] }}
+
+      # === DEWPOINT INTERNO ===
+      - name: dewpoint_interno
+        unique_id: dewpoint_interno
+        unit_of_measurement: "°C"
+        device_class: temperature
+        icon: mdi:thermometer-water
+        state_class: measurement
+        state: >
+          {% set T = states('sensor.temperatura_interna_media')|float(none) %}
+          {% set RH = states('sensor.umidita_interna_media')|float(none) %}
+          {% if T is number and RH is number %}
+            {% set a = 17.27 %}
+            {% set b = 237.7 %}
+            {% set alpha = ((a * T) / (b + T)) + (RH/100.0)|log %}
+            {% set dp = (b * alpha) / (a - alpha) %}
+            {{ dp|round(1) }}
+          {% else %}unavailable{% endif %}
+        availability: >
+          {{ states('sensor.temperatura_interna_media') not in ['unknown','unavailable',''] and
+             states('sensor.umidita_interna_media')      not in ['unknown','unavailable',''] }}
+
+      # === DIFFERENZE (DELTA) ===
+      - name: deltaah_in_out
+        unique_id: deltaah_in_out
+        unit_of_measurement: "g/m³"
+        icon: mdi:water-percent
+        state_class: measurement
+        state: >
+          {% set Ai = states('sensor.ah_interna')|float(none) %}
+          {% set Ao = states('sensor.ah_esterna')|float(none) %}
+          {{ (Ai - Ao)|round(2) if Ai is number and Ao is number else 'unavailable' }}
+        availability: >
+          {{ states('sensor.ah_interna') not in ['unknown','unavailable',''] and
+             states('sensor.ah_esterna') not in ['unknown','unavailable',''] }}
+
+      - name: deltat_in_out
+        unique_id: deltat_in_out
+        unit_of_measurement: "°C"
+        device_class: temperature
+        icon: mdi:thermometer
+        state_class: measurement
+        state: >
+          {% set Ti = states('sensor.temperatura_interna_media')|float(none) %}
+          {% set To = states('sensor.temperatura_esterna')|float(none) %}
+          {{ (Ti - To)|round(1) if Ti is number and To is number else 'unavailable' }}
+        availability: >
+          {{ states('sensor.temperatura_interna_media') not in ['unknown','unavailable',''] and
+             states('sensor.temperatura_esterna')       not in ['unknown','unavailable',''] }}
+
+      # PRIORITÀ ATTUALE (testo)
+      - name: "VMC Priority"
+        unique_id: vmc_priority
+        state: >
+          {% if is_state('switch.vmc_vel_3','on') %}P1 — Bagno/BOOST
+          {% elif is_state('switch.vmc_vel_2','on') %}P2 — Free-cooling
+          {% elif is_state('binary_sensor.vmc_p3_anti_secco_attivo','on') %}P3 — Anti-secco
+          {% elif is_state('switch.vmc_vel_1','on') %}P4 — Baseline
+          {% elif is_state('switch.ac_notte','on') and is_state('switch.vmc_vel_0','on') %}OV — AC notte = DRY
+          {% elif is_state('switch.vmc_vel_0','on') %}P0 — Failsafe/Stop
+          {% else %}—{% endif %}
+
+      # MOTIVO SINTETICO (frase breve)
+      - name: "VMC Reason"
+        unique_id: vmc_reason
+        state: >
+          {% set Tin  = states('sensor.temperatura_interna_media')|float(0) %}
+          {% set Tout = states('sensor.temperatura_esterna')|float(0) %}
+          {% set AHin  = states('sensor.ah_interna')|float(0) %}
+          {% set AHout = states('sensor.ah_esterna')|float(0) %}
+          {% set URb = states('sensor.umidita_bagno')|float(0) %}
+          {% set URo = states('sensor.umidita_esterna')|float(0) %}
+          {% if is_state('switch.vmc_vel_3','on') %}
+            Boost bagno: UR_bagno={{URb|round(1)}}% (ΔUR={{(URb-URo)|round(1)}}%)
+          {% elif is_state('switch.vmc_vel_2','on') %}
+            Free-cooling: Tin {{Tin|round(1)}}°C > T_on e Tout {{Tout|round(1)}}°C < Tin; AH_out {{AHout|round(1)}} < AH_in {{AHin|round(1)}}
+          {% elif is_state('binary_sensor.vmc_p3_anti_secco_attivo','on') %}
+            Anti-secco: UR_interna_min ≤ soglia notturna
+          {% elif is_state('switch.ac_notte','on') and is_state('switch.vmc_vel_0','on') %}
+            Override: AC notte = DRY → VMC vel_0
+          {% elif is_state('switch.vmc_vel_1','on') %}
+            Nessuna condizione prioritaria → baseline
+          {% elif is_state('switch.vmc_vel_0','on') %}
+            Failsafe/spegimento forzato
+          {% else %}—{% endif %}
+
+      # LOG EVENTO
+      - name: "VMC Last Event"
+        unique_id: vmc_last_event
+        state: "{{ states('input_text.vmc_last_event') if states('input_text.vmc_last_event') not in ['unknown','unavailable'] else '—' }}"
+
+  - binary_sensor:
+      - name: "Stagione calda"
+        unique_id: stagione_calda
+        state: >
+          {{ now().month in [5,6,7,8,9] }}
+      - name: "Stagione fredda"
+        unique_id: stagione_fredda
+        state: >
+          {{ now().month in [11,12,1,2,3] }}
