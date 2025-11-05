@@ -18,7 +18,7 @@ logica/                     # Human-readable logic and design rules (authoritati
   2_vmc.txt                # VMC core logic & priorities
   3_heating.txt             # Floor heating strategy
   4_ac.txt                  # AC logic (DRY/COOL, anti-cycle)
-  regole_plancia.txt       # Lovelace UI rules (v2)
+  regole_plancia.txt       # Lovelace UI rules
   regole_chat_gpt.txt       # How GPT must work on this project
   README_struttura_sistemi.md
 
@@ -31,6 +31,7 @@ packages/                   # HA YAML packages (editable by Codex)
   5_powermeter_energy.yaml         # energy meters (scaffold)
   6_surplus_energy.yaml     # PV surplus logic (scaffold)
   6_global_energy.yaml      # global energy KPIs (scaffold)
+  9_debug_sistema.yaml
 
 lovelace/                   # Lovelace dashboards (one file per board)
   1_vent_plancia.yaml
