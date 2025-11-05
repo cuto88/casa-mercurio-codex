@@ -1,0 +1,172 @@
+###############################################################################
+# Helper sensors & proxies — canonical entities for the automation packages
+# ---------------------------------------------------------------------------
+# Usa questo file per definire i sensori/template "helper" che espongono
+# nomi coerenti (es. sensor.helper_temp_zone_day) indipendenti dai sensori
+# fisici installati. In questo modo i file di logica possono riferirsi sempre
+# agli stessi identificativi, mentre qui effettui il mapping verso l'hardware
+# reale.
+#
+# Sostituisci i placeholder `sensor.tuo_sensore_*` con gli entity_id reali
+# del tuo impianto. Aggiungi o rimuovi blocchi secondo le zone disponibili.
+###############################################################################
+
+template:
+  - sensor:
+      # Temperatura interna zona giorno
+      - name: "Helper Temperatura Zona Giorno"
+        unique_id: helper_temp_zone_day
+        unit_of_measurement: "°C"
+        state: "{{ states('sensor.tuo_sensore_temp_zona_giorno') }}"
+        availability: >-
+          {{ states('sensor.tuo_sensore_temp_zona_giorno') not in ['unknown', 'unavailable', 'none', ''] }}
+        attributes:
+          source_entity_id: sensor.tuo_sensore_temp_zona_giorno
+
+      # Umidità interna zona giorno
+      - name: "Helper Umidita Zona Giorno"
+        unique_id: helper_hum_zone_day
+        unit_of_measurement: "%"
+        state: "{{ states('sensor.tuo_sensore_ur_zona_giorno') }}"
+        availability: >-
+          {{ states('sensor.tuo_sensore_ur_zona_giorno') not in ['unknown', 'unavailable', 'none', ''] }}
+        attributes:
+          source_entity_id: sensor.tuo_sensore_ur_zona_giorno
+
+      # Temperatura interna zona notte (aggregata)
+      - name: "Helper Temperatura Zona Notte"
+        unique_id: helper_temp_zone_night
+        unit_of_measurement: "°C"
+        state: "{{ states('sensor.tuo_sensore_temp_zona_notte') }}"
+        availability: >-
+          {{ states('sensor.tuo_sensore_temp_zona_notte') not in ['unknown', 'unavailable', 'none', ''] }}
+        attributes:
+          source_entity_id: sensor.tuo_sensore_temp_zona_notte
+
+      # Temperatura bagno (se gestita separatamente)
+      - name: "Helper Temperatura Bagno"
+        unique_id: helper_temp_bath
+        unit_of_measurement: "°C"
+        state: "{{ states('sensor.tuo_sensore_temp_bagno') }}"
+        availability: >-
+          {{ states('sensor.tuo_sensore_temp_bagno') not in ['unknown', 'unavailable', 'none', ''] }}
+        attributes:
+          source_entity_id: sensor.tuo_sensore_temp_bagno
+
+      # Temperatura lavanderia
+      - name: "Helper Temperatura Lavanderia"
+        unique_id: helper_temp_laundry
+        unit_of_measurement: "°C"
+        state: "{{ states('sensor.tuo_sensore_temp_lavanderia') }}"
+        availability: >-
+          {{ states('sensor.tuo_sensore_temp_lavanderia') not in ['unknown', 'unavailable', 'none', ''] }}
+        attributes:
+          source_entity_id: sensor.tuo_sensore_temp_lavanderia
+
+      # Temperatura nucleo PCM / accumulo termico
+      - name: "Helper Temperatura PCM"
+        unique_id: helper_temp_pcm_core
+        unit_of_measurement: "°C"
+        state: "{{ states('sensor.tuo_sensore_temp_pcm') }}"
+        availability: >-
+          {{ states('sensor.tuo_sensore_temp_pcm') not in ['unknown', 'unavailable', 'none', ''] }}
+        attributes:
+          source_entity_id: sensor.tuo_sensore_temp_pcm
+
+      # Umidità interna zona notte (aggregata)
+      - name: "Helper Umidita Zona Notte"
+        unique_id: helper_hum_zone_night
+        unit_of_measurement: "%"
+        state: "{{ states('sensor.tuo_sensore_ur_zona_notte') }}"
+        availability: >-
+          {{ states('sensor.tuo_sensore_ur_zona_notte') not in ['unknown', 'unavailable', 'none', ''] }}
+        attributes:
+          source_entity_id: sensor.tuo_sensore_ur_zona_notte
+
+      # Umidita bagno
+      - name: "Helper Umidita Bagno"
+        unique_id: helper_hum_bath
+        unit_of_measurement: "%"
+        state: "{{ states('sensor.tuo_sensore_ur_bagno') }}"
+        availability: >-
+          {{ states('sensor.tuo_sensore_ur_bagno') not in ['unknown', 'unavailable', 'none', ''] }}
+        attributes:
+          source_entity_id: sensor.tuo_sensore_ur_bagno
+
+      # Temperatura esterna
+      - name: "Helper Temperatura Esterna"
+        unique_id: helper_temp_outdoor
+        unit_of_measurement: "°C"
+        state: "{{ states('sensor.tuo_sensore_temp_esterna') }}"
+        availability: >-
+          {{ states('sensor.tuo_sensore_temp_esterna') not in ['unknown', 'unavailable', 'none', ''] }}
+        attributes:
+          source_entity_id: sensor.tuo_sensore_temp_esterna
+
+      # Umidità esterna
+      - name: "Helper Umidita Esterna"
+        unique_id: helper_hum_outdoor
+        unit_of_measurement: "%"
+        state: "{{ states('sensor.tuo_sensore_ur_esterna') }}"
+        availability: >-
+          {{ states('sensor.tuo_sensore_ur_esterna') not in ['unknown', 'unavailable', 'none', ''] }}
+        attributes:
+          source_entity_id: sensor.tuo_sensore_ur_esterna
+
+      # Umidita interna minima (calcolata/aggregata)
+      - name: "Helper Umidita Interna Min"
+        unique_id: helper_hum_internal_min
+        unit_of_measurement: "%"
+        state: "{{ states('sensor.tuo_template_umidita_min') }}"
+        availability: >-
+          {{ states('sensor.tuo_template_umidita_min') not in ['unknown', 'unavailable', 'none', ''] }}
+        attributes:
+          source_entity_id: sensor.tuo_template_umidita_min
+
+      # Velocita vento esterna (opzionale, se disponibile)
+      - name: "Helper Velocita Vento"
+        unique_id: helper_wind_speed
+        unit_of_measurement: "m/s"
+        state: "{{ states('sensor.tuo_sensore_vento') }}"
+        availability: >-
+          {{ states('sensor.tuo_sensore_vento') not in ['unknown', 'unavailable', 'none', ''] }}
+        attributes:
+          source_entity_id: sensor.tuo_sensore_vento
+
+      # Consumo idrico loop desiccante
+      - name: "Helper Consumo Loop Desiccante"
+        unique_id: helper_desiccant_water_use
+        unit_of_measurement: "L"
+        state: "{{ states('sensor.tuo_contatore_acqua_desiccant') }}"
+        availability: >-
+          {{ states('sensor.tuo_contatore_acqua_desiccant') not in ['unknown', 'unavailable', 'none', ''] }}
+        attributes:
+          source_entity_id: sensor.tuo_contatore_acqua_desiccant
+
+      # Feedback velocita VMC (se disponibile)
+      - name: "Helper VMC Speed Feedback"
+        unique_id: helper_vmc_speed_feedback
+        state: "{{ states('sensor.tuo_feedback_velocita_vmc') }}"
+        availability: >-
+          {{ states('sensor.tuo_feedback_velocita_vmc') not in ['unknown', 'unavailable', 'none', ''] }}
+        attributes:
+          source_entity_id: sensor.tuo_feedback_velocita_vmc
+
+  - binary_sensor:
+      # Occupazione zona giorno (es. derived da presenza o calendario)
+      - name: "Helper Occupazione Zona Giorno"
+        unique_id: helper_occupancy_zone_day
+        state: "{{ is_state('binary_sensor.tuo_sensore_presence_day', 'on') }}"
+        attributes:
+          source_entity_id: binary_sensor.tuo_sensore_presence_day
+
+      # Occupazione zona notte
+      - name: "Helper Occupazione Zona Notte"
+        unique_id: helper_occupancy_zone_night
+        state: "{{ is_state('binary_sensor.tuo_sensore_presence_night', 'on') }}"
+        attributes:
+          source_entity_id: binary_sensor.tuo_sensore_presence_night
+
+# Aggiungi altri helper (dew point, AH, delta, IAQ, ecc.) seguendo la stessa
+# struttura. Tutti i file di logica (`1_vent.yaml`, `2_vmc.yaml`, ecc.) devono
+# riferirsi ai nomi helper definiti qui, non direttamente ai sensori fisici.

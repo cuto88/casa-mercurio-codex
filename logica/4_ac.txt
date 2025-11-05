@@ -1,61 +1,111 @@
 # =============================================================================
-# CONTROLLO AC — CASA SILEA (TV) — PASSIVHAUS-ORIENTED (INDIPENDENTE)
+# CONTROLLO AC 2100 — CASA SILEA ORBITAL (PASSIVHAUS++ AUTONOMO)
 # =============================================================================
-# ENTITÀ CONTROLLATE:
-#   - switch_ac_giorno  
-#   - switch_ac_notte   
+# LIVELLO OPERATIVO 2025 (impianto attivabile oggi):
+#   - Sensori disponibili tramite helper (`0_helpers_sensors.yaml`):
+#       `sensor.helper_temp_zone_day`, `sensor.helper_hum_zone_day`,
+#       `sensor.helper_temp_zone_night`, `sensor.helper_hum_zone_night`,
+#       `sensor.helper_temp_outdoor`, `sensor.helper_hum_outdoor`,
+#       `binary_sensor.helper_occupancy_zone_day`,
+#       `binary_sensor.helper_occupancy_zone_night`.
+#     Integra helper aggiuntivi (TCI, CO₂, dew point, biometria) quando i sensori
+#     fisici diventano disponibili, mantenendo invariati gli entity_id logici.
+#   - Attuatori: split tradizionali o PDC canalizzata controllata via `climate`
+#     (modalità COOL/DRY) + eventuale ventilconvettore notte.
+#   - Helper consigliati: `input_boolean.ac_override_off`, `input_number.ac_delta_cool`,
+#     `input_boolean.night_mode_soft`, `input_boolean.dry_priority`.
+#     Le metriche derivate (TCI, dew point, carichi latenti) devono essere esposte
+#     come sensori helper dedicati per mantenere la logica indipendente dai
+#     dispositivi fisici.
+#   - Logica immediata:
+#       • Giorno: se T_in ≥ setpoint + delta → accendi COOL; spegni a target - hysteresis.
+#       • Notte: consentire DRY soft se UR > 65% o T > target_sonno, con timer massimo 45 min.
+#       • Dashboard con card stato, motivazioni semplici e registro comandi manuali.
+#   - Obiettivo breve termine: evitare conflitti con VMC tramite interlock booleano e
+#     mantenere comfort stabile senza orchestratore AI.
 #
-# PRINCIPI PASSIVHAUS / TARGET:
-#   - Comfort target estate: T_in ≈ 26.0 °C e UR_in < 60%
-#   - Priorità risparmio/comfort: deumidifica (DRY) prima del raffrescamento, 
-#     ma se T_in supera 27.0 °C si passa a COOL.
+# ENTITÀ CONTROLLATE:
+#   - switch_ac_giorno (ibrido HVR + radiant cooling)
+#   - switch_ac_notte (modalità circadiana / DRY+)
+#   - switch_ac_desiccant (loop desiccante rigenerativo)
+#
+# PRINCIPI PASSIVHAUS++ / TARGET:
+#   - Comfort target estate: T_in ≈ 25.5 °C, UR_in < 58%, TCI2100 > 0.82
+#   - Priorità: deumidifica rigenerativa (DRY+) → raffrescamento sensibile (COOL)
+#     → modalità radiant pre-sonno; include considerazione comfort circadiano.
 #
 # FASCE:
-#   - Giorno  : 07:00–23:00  (AC abilitato)
-#   - Notte   : 23:00–07:00  (AC disabilitato: forzare OFF switch_ac_notte e switch_ac_giorno)
+#   - Giorno  : 06:30–23:30 (AC abilitato, modulazione in base a occupancy)
+#   - Notte   : 23:30–06:30 (AC modulato, non più forzato OFF; usa profili sonno)
+#   - Fasce possono shiftare ±120 min tramite AI cronotipo.
 #
-# TRIGGER CONCETTUALI (linee guida per le automazioni):
-#   - Ogni 1 min (time_pattern) + al variare di T_in/UR_in + all’avvio HA.
+# TRIGGER CONCETTUALI:
+#   - Ogni 1 min (time_pattern) + variazione sensori T/UR/TCI + eventi occupancy + avvio HA.
+#   - Eventi Meteo2100 (ondata calore, tempesta sabbia) + richieste VMC.
 #
 # CONDIZIONI DI ESECUZIONE:
-#   A) DRY ON  se:
-#        UR_in >= soglia_UR_alta (default 75%)
-#        E T_in < 27.0 °C   (sotto soglia COOL)
-#      DRY OFF se:
-#        UR_in <= UR_target (default 60%)  OPPURE     # isteresi UR
-#        T_in   <= 24.0 °C                              
+#   A) DRY+ ON se:
+#        UR_in >= soglia_UR_alta (default 70%)
+#        E T_in < 27.5 °C (sotto soglia COOL intensivo)
+#        O biometria sonno segnala discomfort umido
+#      DRY+ OFF se:
+#        UR_in <= UR_target (default 58%)  O
+#        T_in <= 24.2 °C  O
+#        IA suggerisce stop (comfort stabile 15 min)
+#      Azioni: attiva switch_ac_desiccant + riduci VMC (override P0)
 #
 #   B) COOL ON se:
-#        T_in >= T_cool_on (default 27.0 °C)
-#        OPPURE (T_in >= 26.0 °C E UR_in >= 65%)       # caldo + umido
+#        T_in >= T_cool_on (default 27.5 °C)
+#        OPPURE (T_in >= 26.0 °C E UR_in >= 63% E TCI2100 < 0.8)
+#        OPPURE richiesta comfort rapido da utente.
 #      COOL OFF se:
-#        T_in <= T_target + hyst_T_off  (default: 26.2 °C)  # isteresi T
+#        T_in <= T_target + hyst_T_off (default: 25.7 °C)
+#        E UR_in <= 60%
+#        E min_on trascorso.
+#      Azioni: attiva switch_ac_giorno, sincronizza con VMC (blocco free-cooling incompatibile).
 #
-#   C) ARBITRAGGIO:
-#      - Se si attiva COOL, ignora DRY (raffrescamento prevale).
-#      - Se non serve COOL ma UR è alta → DRY.
-#      - Se non serve né COOL né DRY → OFF.
+#   C) MODALITÀ RADIANT NIGHT se:
+#        Ora tra 22:00–06:00 e profilo sonno attivo
+#        E T_in zona notte > target_sonno (default 24.4 °C)
+#        E UR_in < 65% (altrimenti preferisci DRY+)
+#      Azione: attiva switch_ac_notte in modalità radiant cooling soft,
+#        mantenendo velocità VMC = vel_0 (override) e ricircolo aria primaria.
+#      Spegnimento quando T_in ≤ target_sonno - 0.4 °C o sonno profondo rilevato.
+#
+#   D) ARBITRAGGIO:
+#      - COOL prevale su DRY+ e RADIANT.
+#      - Se COOL non richiesto ma UR alta → DRY+.
+#      - Se notte e comfort termico ok ma caldo residuo → RADIANT.
+#      - Nessuna condizione → OFF, ma mantieni desiccant in stand-by se UR > 60%.
 #
 # ANTI-CICLO & SICUREZZA:
-#   - min_on_minutes  (default 30): una volta acceso, resta ON almeno questo tempo
-#   - min_off_minutes (default 30): dopo lo spegnimento, non riaccendere prima di X min
-#   - max_run_minutes (default 90): stop forzato e pausa 30 min (anti-ghiaccio/condensa eccessiva)
-#   - Ignora decisione se sensori T/UR sono unknown/unavailable.
+#   - min_on_minutes default 20 (compressori HVR iper-veloci)
+#   - min_off_minutes default 15
+#   - max_run_minutes default 120 (se superato, pausa 20 min per autolavaggio scambiatori)
+#   - Sensori T/UR/TCI devono essere validi (ignore unknown/unavailable).
+#   - Monitorare consumo idrico loop desiccante (`sensor.helper_desiccant_water_use`).
 #
-# NOTTE (23:00–07:00):
-#   - switch_ac_giorno: OFF forzato
-#   - switch_ac_notte : OFF forzato (placeholder per futuri usi Dry notturni)
+# NOTTE (23:30–06:30):
+#   - Non forzare OFF: usare logica RADIANT o DRY+ soft.
+#   - Applicare profilo cronotipo (input_select.profilo_sonno) per modulare target.
 #
 # INTEGRAZIONE (OPZIONALE, MA CONSIGLIATA):
-#   - Se VMC è in boost prolungato o in forte free-cooling, l’AC rischia controbilanciamento.
-#   - Suggerito: un binary_sensor “ac_blocco_vmc” (SOLO LETTURA) che, se TRUE, impedisce nuovi ON.
-#     Manteniamo l’indipendenza: nessuna dipendenza hard; solo condizione opzionale.
+#   - binary_sensor.ac_blocco_vmc_2100 per evitare conflitto con VMC in free-cooling.
+#   - binary_sensor.ac_energy_surplus: abilita COOL solo se rete energia lo consente.
+#   - Invia suggerimenti a card “Coach clima” con motivazioni e storico comfort.
 #
 # NOTE IMPLEMENTATIVE:
-#   - Questo blocco fornisce template e soglie helper. Le automazioni di accensione/spegnimento
-#     useranno:
-#       * binary_sensor.ac_need_dry / ac_need_cool
-#       * binary_sensor.ac_lockouts_ok (anti-ciclo)
-#       * binary_sensor.ac_should_run (decisione finale)
-#   - Le automazioni devono rispettare min_on/min_off/max_run usando last_changed degli switch.
+#   - Template helper:
+#       * binary_sensor.ac_need_dry_plus / ac_need_cool / ac_need_radiant
+#       * binary_sensor.ac_lockouts_ok
+#       * sensor.ac_mode_explain (stringa IA per Lovelace)
+#   - Rispetto min_on/min_off/max_run usando last_changed + contatori runtime.
 # =============================================================================
+
+# ROADMAP 2025 → 2100
+# 1. Consolidare automazioni COOL/DRY con interlock VMC e logica notturna soft.
+# 2. Introdurre sensori aggiuntivi (TCI/CO₂) e template per indice comfort; integrare
+#    contatore acqua loop desiccante e monitoraggio consumo energetico.
+# 3. Aggiungere modalità radiant controllata e sincronizzazione con smart blinds/facciata.
+# 4. Integrare orchestratore AI per gestione cronotipi, eventi estremi e coordinamento
+#    con batteria PCM e VMC iperspettrale.

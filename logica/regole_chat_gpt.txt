@@ -29,10 +29,11 @@ GPT deve sempre assicurarsi che questi tre livelli siano coerenti tra loro.
    Il canvas deve contenere *solo* il codice del file richiesto.  
    Se servono modifiche ad altri file, GPT le scrive fuori dal canvas come testo.
 
-3. **Nomi chiari e coerenti**  
-   Usare le entità standard (es. `sensor.temperatura_zona_giorno`,  
-   `switch.vmc_vel_1`, `input_number.vmc_bagno_on`, ecc.)  
-   e controllare che corrispondano ai nomi nei file .txt o già esistenti.
+3. **Nomi chiari e coerenti**
+   Usare sempre gli **helper canonici** definiti in `0_helpers_sensors.yaml`
+   (es. `sensor.helper_temp_zone_day`, `sensor.helper_hum_bath`,
+   `switch.vmc_vel_1`, `input_number.vmc_bagno_on`, ecc.) e controllare che
+   corrispondano ai nomi nei file .txt o già esistenti.
 
 4. **Logica invariata se non richiesto**  
    GPT non cambia la logica del sistema a meno che non venga esplicitamente chiesto.  
@@ -50,7 +51,7 @@ GPT deve sempre assicurarsi che questi tre livelli siano coerenti tra loro.
 
 ## 3️⃣ LINEE GUIDA PER LE PLANCIE (Lovelace)
 
-- Rispettare `regole_plancia2.txt` in tutto:
+- Rispettare `regole_plancia.txt` in tutto:
   - 3 sezioni fisse: **Stato/Comandi**, **KPI**, **Trend/Lock**
   - Layout mobile-first con `sections:` e `max_columns`
   - Color coding coerente:
