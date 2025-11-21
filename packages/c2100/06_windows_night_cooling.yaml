@@ -1,0 +1,57 @@
+### PACKAGE: Suggerimenti finestre e night cooling
+binary_sensor:
+  - platform: template
+    sensors:
+      c2100_finestre_aprire:
+        friendly_name: "Apri finestre per ventilazione naturale"
+        device_class: opening
+        value_template: >-
+          {% set t_out = states('sensor.c2100_t_esterna')|float(0) %}
+          {% set t_in = states('sensor.c2100_t_interna_media')|float(0) %}
+          {% set rh_out = states('sensor.c2100_ur_esterna')|float(0) %}
+          {% set rh_in = states('sensor.c2100_ur_interna_media')|float(0) %}
+          {{ (t_out < t_in) and (rh_out <= rh_in) }}
+        icon_template: mdi:window-open-variant
+
+automation:
+  - id: c2100_window_advice
+    alias: "C2100 | Consiglio finestre"
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.c2100_finestre_aprire
+      - platform: state
+        entity_id: binary_sensor.c2100_night_cooling_ok
+      - platform: time
+        at: "22:30:00"
+    condition:
+      - condition: state
+        entity_id: input_boolean.c2100_master_automation
+        state: "on"
+      - condition: state
+        entity_id: input_boolean.c2100_windows_advice_enable
+        state: "on"
+    action:
+      - choose:
+          - conditions:
+              - condition: state
+                entity_id: binary_sensor.c2100_night_cooling_ok
+                state: "on"
+            sequence:
+              - service: persistent_notification.create
+                data:
+                  title: "C2100 Night Cooling"
+                  message: "Apri le finestre + BOOST VMC: aria esterna più fresca/secca di {{ states('input_number.c2100_night_cooling_delta') }}°C."
+          - conditions:
+              - condition: state
+                entity_id: binary_sensor.c2100_finestre_aprire
+                state: "on"
+            sequence:
+              - service: persistent_notification.create
+                data:
+                  title: "C2100 Ventilazione naturale"
+                  message: "Apri le finestre: T_out < T_in e UR_out <= UR_in."
+        default:
+          - service: persistent_notification.create
+            data:
+              title: "C2100 Finestre"
+              message: "Mantieni finestre chiuse: condizioni esterne non migliorative."

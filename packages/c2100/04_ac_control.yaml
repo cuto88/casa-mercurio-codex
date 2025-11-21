@@ -1,0 +1,104 @@
+### PACKAGE: Climatizzazione estiva giorno/notte
+automation:
+  - id: c2100_ac_day
+    alias: "C2100 | AC giorno"
+    description: "Gestione AC diurna con logica comfort/surplus"
+    trigger:
+      - platform: time_pattern
+        minutes: "/10"
+      - platform: state
+        entity_id:
+          - binary_sensor.c2100_overheating
+          - binary_sensor.c2100_comfort_ok
+          - binary_sensor.c2100_surplus_available
+    condition:
+      - condition: state
+        entity_id: input_boolean.c2100_master_automation
+        state: "on"
+      - condition: state
+        entity_id: input_boolean.c2100_ac_enable
+        state: "on"
+      - condition: time
+        after: "08:00:00"
+        before: "22:00:00"
+    action:
+      - variables:
+          mode: "{{ states('input_select.c2100_ac_day_mode') }}"
+          comfort_ok: "{{ is_state('binary_sensor.c2100_comfort_ok','on') }}"
+          overheat: "{{ is_state('binary_sensor.c2100_overheating','on') }}"
+          surplus: "{{ is_state('binary_sensor.c2100_surplus_available','on') }}"
+          sum_max: "{{ states('input_number.c2100_comfort_summer_max')|float(26) }}"
+          precool: "{{ states('input_number.c2100_precool_margin')|float(0) }}"
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ mode != 'OFF' and (overheat or not comfort_ok) }}"
+            sequence:
+              - service: climate.set_hvac_mode
+                target:
+                  entity_id: climate.ac_giorno
+                data:
+                  hvac_mode: "{{ mode|lower }}"
+              - service: climate.set_temperature
+                target:
+                  entity_id: climate.ac_giorno
+                data:
+                  temperature: "{{ (sum_max - (precool if surplus else 0))|round(1) }}"
+        default:
+          - service: climate.set_hvac_mode
+            target:
+              entity_id: climate.ac_giorno
+            data:
+              hvac_mode: "off"
+
+  - id: c2100_ac_night
+    alias: "C2100 | AC notte"
+    description: "Night cooling meccanico come fallback"
+    trigger:
+      - platform: time_pattern
+        minutes: "/15"
+      - platform: state
+        entity_id:
+          - binary_sensor.c2100_overheating
+          - binary_sensor.c2100_comfort_ok
+    condition:
+      - condition: state
+        entity_id: input_boolean.c2100_master_automation
+        state: "on"
+      - condition: state
+        entity_id: input_boolean.c2100_ac_enable
+        state: "on"
+      - condition: or
+        conditions:
+          - condition: time
+            after: "22:00:00"
+          - condition: time
+            before: "08:00:00"
+    action:
+      - variables:
+          mode: "{{ states('input_select.c2100_ac_night_mode') }}"
+          comfort_ok: "{{ is_state('binary_sensor.c2100_comfort_ok','on') }}"
+          overheat: "{{ is_state('binary_sensor.c2100_overheating','on') }}"
+          sum_max: "{{ states('input_number.c2100_comfort_summer_max')|float(26) }}"
+          delta: "{{ states('input_number.c2100_night_cooling_delta')|float(1.5) }}"
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ mode != 'OFF' and (overheat or not comfort_ok) }}"
+            sequence:
+              - service: climate.set_hvac_mode
+                target:
+                  entity_id: climate.ac_notte
+                data:
+                  hvac_mode: "{{ mode|lower }}"
+              - service: climate.set_temperature
+                target:
+                  entity_id: climate.ac_notte
+                data:
+                  temperature: "{{ (sum_max - delta)|round(1) }}"
+        default:
+          - service: climate.set_hvac_mode
+            target:
+              entity_id: climate.ac_notte
+            data:
+              hvac_mode: "off"

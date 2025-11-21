@@ -1,0 +1,46 @@
+### Lovelace: Energia, FV e ACS
+title: "C2100 | Energia"
+views:
+  - title: Energia
+    path: energia
+    badges:
+      - binary_sensor.c2100_surplus_available
+    cards:
+      - type: grid
+        columns: 2
+        square: false
+        cards:
+          - type: gauge
+            name: FV
+            entity: sensor.c2100_potenza_fv
+            max: 8000
+          - type: gauge
+            name: Consumo casa
+            entity: sensor.c2100_consumo_casa
+            max: 8000
+          - type: gauge
+            name: Surplus
+            entity: sensor.c2100_surplus_fv
+            max: 5000
+          - type: gauge
+            name: Scambio rete
+            entity: sensor.c2100_scambio_rete
+            max: 5000
+      - type: entities
+        title: ACS e priorità
+        entities:
+          - input_boolean.c2100_acs_enable
+          - water_heater.acs
+          - sensor.c2100_surplus_fv
+          - binary_sensor.c2100_surplus_available
+      - type: history-graph
+        hours_to_show: 24
+        entities:
+          - sensor.c2100_potenza_fv
+          - sensor.c2100_consumo_casa
+          - sensor.c2100_surplus_fv
+      - type: markdown
+        content: |
+          **Logica**
+          - Usa surplus per ACS e pre-riscaldo/pre-raffresco.
+          - Priorità comfort > efficienza: se fuori comfort gli attuatori vincono.

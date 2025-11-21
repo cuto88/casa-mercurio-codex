@@ -1,0 +1,43 @@
+### Lovelace: Clima (Radiante + AC)
+title: "C2100 | Clima"
+views:
+  - title: Clima
+    path: clima
+    badges:
+      - binary_sensor.c2100_comfort_ok
+      - binary_sensor.c2100_overheating
+    cards:
+      - type: grid
+        columns: 2
+        square: false
+        cards:
+          - type: thermostat
+            entity: climate.zona_giorno
+          - type: thermostat
+            entity: climate.camera1
+          - type: thermostat
+            entity: climate.camera2
+      - type: entities
+        title: Automazioni
+        entities:
+          - input_boolean.c2100_heating_enable
+          - input_boolean.c2100_ac_enable
+          - input_select.c2100_ac_day_mode
+          - input_select.c2100_ac_night_mode
+          - input_number.c2100_precool_margin
+          - input_number.c2100_preheat_margin
+      - type: entities
+        title: KPI comfort
+        entities:
+          - sensor.c2100_t_interna_media
+          - sensor.c2100_ur_interna_media
+          - input_number.c2100_comfort_winter_min
+          - input_number.c2100_comfort_winter_max
+          - input_number.c2100_comfort_summer_min
+          - input_number.c2100_comfort_summer_max
+      - type: history-graph
+        entities:
+          - climate.zona_giorno
+          - climate.ac_giorno
+          - climate.ac_notte
+        hours_to_show: 48

@@ -1,0 +1,68 @@
+### PACKAGE: Energia FV, surplus e ACS
+automation:
+  - id: c2100_acs_surplus
+    alias: "C2100 | ACS con surplus FV"
+    description: "Carica ACS quando il surplus è sufficiente, altrimenti eco"
+    trigger:
+      - platform: state
+        entity_id:
+          - binary_sensor.c2100_surplus_available
+      - platform: time_pattern
+        minutes: "/30"
+    condition:
+      - condition: state
+        entity_id: input_boolean.c2100_master_automation
+        state: "on"
+      - condition: state
+        entity_id: input_boolean.c2100_acs_enable
+        state: "on"
+    action:
+      - choose:
+          - conditions:
+              - condition: state
+                entity_id: binary_sensor.c2100_surplus_available
+                state: "on"
+            sequence:
+              - service: water_heater.set_operation_mode
+                target:
+                  entity_id: water_heater.acs
+                data:
+                  operation_mode: heat_pump
+              - service: water_heater.set_temperature
+                target:
+                  entity_id: water_heater.acs
+                data:
+                  temperature: 50
+          - conditions:
+              - condition: state
+                entity_id: binary_sensor.c2100_surplus_available
+                state: "off"
+            sequence:
+              - service: water_heater.set_operation_mode
+                target:
+                  entity_id: water_heater.acs
+                data:
+                  operation_mode: eco
+              - service: water_heater.set_temperature
+                target:
+                  entity_id: water_heater.acs
+                data:
+                  temperature: 45
+
+  - id: c2100_energy_notification
+    alias: "C2100 | Notifica uso surplus"
+    description: "Sintesi giornaliera su come è stato usato il surplus"
+    trigger:
+      - platform: time
+        at: "21:30:00"
+    condition:
+      - condition: state
+        entity_id: input_boolean.c2100_master_automation
+        state: "on"
+    action:
+      - service: persistent_notification.create
+        data:
+          title: "C2100 Energia"
+          message: |
+            Surplus FV oggi: {{ states('sensor.c2100_surplus_fv') }} W istantanei.
+            Controlla grafici per trend in dashboard Energia.

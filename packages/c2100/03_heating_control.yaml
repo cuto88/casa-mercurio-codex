@@ -1,0 +1,60 @@
+### PACKAGE: Riscaldamento radiante con priorità comfort e surplus
+script:
+  c2100_set_heat_target:
+    alias: "C2100 | Setpoint riscaldamento zone"
+    mode: queued
+    fields:
+      target_temp:
+        description: "Setpoint desiderato"
+        example: 21.0
+      thermostats:
+        description: "Lista climatizzatori/termostati"
+    sequence:
+      - repeat:
+          for_each: "{{ thermostats }}"
+          sequence:
+            - service: climate.set_temperature
+              target:
+                entity_id: "{{ repeat.item }}"
+              data:
+                temperature: "{{ target_temp }}"
+
+automation:
+  - id: c2100_heating_base
+    alias: "C2100 | Radiante comfort & surplus"
+    description: "Applica setpoint comfort e pre-riscaldamento se surplus FV"
+    trigger:
+      - platform: time_pattern
+        minutes: "/15"
+      - platform: state
+        entity_id:
+          - sensor.c2100_t_interna_media
+          - binary_sensor.c2100_surplus_available
+    condition:
+      - condition: state
+        entity_id: input_boolean.c2100_master_automation
+        state: "on"
+      - condition: state
+        entity_id: input_boolean.c2100_heating_enable
+        state: "on"
+    action:
+      - variables:
+          win_min: "{{ states('input_number.c2100_comfort_winter_min')|float(20) }}"
+          win_max: "{{ states('input_number.c2100_comfort_winter_max')|float(22) }}"
+          preheat: "{{ states('input_number.c2100_preheat_margin')|float(0) }}"
+          surplus: "{{ is_state('binary_sensor.c2100_surplus_available','on') }}"
+          thermostats: ["climate.zona_giorno", "climate.camera1", "climate.camera2"]
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ surplus }}"
+            sequence:
+              - service: script.c2100_set_heat_target
+                data:
+                  target_temp: "{{ (win_max + preheat) | round(1) }}"
+                  thermostats: "{{ thermostats }}"
+        default:
+          - service: script.c2100_set_heat_target
+            data:
+              target_temp: "{{ ((win_min + win_max)/2) | round(1) }}"
+              thermostats: "{{ thermostats }}"

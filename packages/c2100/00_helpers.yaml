@@ -1,0 +1,153 @@
+### PACKAGE: Helpers e configurazioni di comfort / energia
+input_boolean:
+  c2100_master_automation:
+    name: "C2100 | Automazioni Master"
+    icon: mdi:robot
+  c2100_vmc_enable:
+    name: "C2100 | Abilita logica VMC"
+    icon: mdi:fan-auto
+  c2100_ac_enable:
+    name: "C2100 | Abilita AC"
+    icon: mdi:air-conditioner
+  c2100_heating_enable:
+    name: "C2100 | Abilita Riscaldamento"
+    icon: mdi:radiator
+  c2100_acs_enable:
+    name: "C2100 | Abilita ACS"
+    icon: mdi:water-boiler
+  c2100_windows_advice_enable:
+    name: "C2100 | Suggerimenti Finestre"
+    icon: mdi:window-open-variant
+
+input_number:
+  c2100_comfort_winter_min:
+    name: "Comfort inverno min"
+    min: 18
+    max: 22
+    step: 0.5
+    unit_of_measurement: "°C"
+    icon: mdi:snowflake
+    initial: 20
+  c2100_comfort_winter_max:
+    name: "Comfort inverno max"
+    min: 20
+    max: 24
+    step: 0.5
+    unit_of_measurement: "°C"
+    icon: mdi:snowflake
+    initial: 22
+  c2100_comfort_summer_min:
+    name: "Comfort estate min"
+    min: 22
+    max: 26
+    step: 0.5
+    unit_of_measurement: "°C"
+    icon: mdi:weather-sunny
+    initial: 24
+  c2100_comfort_summer_max:
+    name: "Comfort estate max"
+    min: 24
+    max: 28
+    step: 0.5
+    unit_of_measurement: "°C"
+    icon: mdi:weather-sunny
+    initial: 26
+  c2100_humidity_min:
+    name: "UR min"
+    min: 30
+    max: 50
+    step: 1
+    unit_of_measurement: "%"
+    icon: mdi:water-percent
+    initial: 35
+  c2100_humidity_max:
+    name: "UR max"
+    min: 50
+    max: 70
+    step: 1
+    unit_of_measurement: "%"
+    icon: mdi:water-percent
+    initial: 60
+  c2100_overheat_temp:
+    name: "Soglia overheating"
+    min: 24
+    max: 28
+    step: 0.2
+    unit_of_measurement: "°C"
+    icon: mdi:thermometer-alert
+    initial: 25
+  c2100_overheat_hours:
+    name: "Ore overheating"
+    min: 0.5
+    max: 6
+    step: 0.5
+    unit_of_measurement: "h"
+    icon: mdi:clock-alert
+    initial: 2
+  c2100_night_cooling_delta:
+    name: "Delta night cooling"
+    min: 0.5
+    max: 5
+    step: 0.1
+    unit_of_measurement: "°C"
+    icon: mdi:moon-waning-crescent
+    initial: 1.5
+  c2100_surplus_min_w:
+    name: "Surplus minimo FV"
+    min: 200
+    max: 4000
+    step: 50
+    unit_of_measurement: "W"
+    icon: mdi:solar-power
+    initial: 800
+  c2100_preheat_margin:
+    name: "Margine pre-riscaldamento"
+    min: 0
+    max: 3
+    step: 0.2
+    unit_of_measurement: "°C"
+    icon: mdi:radiator
+    initial: 1
+  c2100_precool_margin:
+    name: "Margine pre-raffrescamento"
+    min: 0
+    max: 3
+    step: 0.2
+    unit_of_measurement: "°C"
+    icon: mdi:air-conditioner
+    initial: 1
+
+input_select:
+  c2100_season_mode:
+    name: "Stagione prevalente"
+    options:
+      - inverno
+      - estate
+      - auto
+    icon: mdi:calendar
+    initial: auto
+  c2100_vmc_command:
+    name: "Comando VMC"
+    options:
+      - STOP
+      - V1
+      - V2
+      - BOOST
+    icon: mdi:fan
+    initial: V1
+  c2100_ac_day_mode:
+    name: "AC giorno"
+    options:
+      - OFF
+      - DRY
+      - COOL
+    icon: mdi:weather-sunny
+    initial: OFF
+  c2100_ac_night_mode:
+    name: "AC notte"
+    options:
+      - OFF
+      - DRY
+      - COOL
+    icon: mdi:moon-waning-crescent
+    initial: OFF
