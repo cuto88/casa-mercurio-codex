@@ -1,0 +1,126 @@
+### PACKAGE: Sensori di input e KPI derivati
+homeassistant:
+  customize:
+    input_select.c2100_vmc_command:
+      icon: mdi:fan
+    sensor.c2100_surplus_w:
+      icon: mdi:solar-power
+    binary_sensor.c2100_overheating:
+      icon: mdi:alert
+
+template:
+  - sensor:
+      ### Dati climatici base (sostituire con sensori reali)
+      - name: "C2100 T Esterna"
+        unique_id: c2100_t_out
+        unit_of_measurement: "°C"
+        state: "{{ states('sensor.outdoor_temperature') }}"
+      - name: "C2100 UR Esterna"
+        unique_id: c2100_rh_out
+        unit_of_measurement: "%"
+        state: "{{ states('sensor.outdoor_humidity') }}"
+      - name: "C2100 T Interna Media"
+        unique_id: c2100_t_in_media
+        unit_of_measurement: "°C"
+        state: "{{ states('sensor.indoor_temperature_average') }}"
+      - name: "C2100 UR Interna Media"
+        unique_id: c2100_rh_in_media
+        unit_of_measurement: "%"
+        state: "{{ states('sensor.indoor_humidity_average') }}"
+
+      ### Umidità assoluta (g/kg) per logica VMC e night cooling
+      - name: "C2100 AH Esterna"
+        unique_id: c2100_ah_out
+        unit_of_measurement: "g/kg"
+        state: |
+          {% set t = states('sensor.c2100_t_esterna')|float(default=0) %}
+          {% set rh = states('sensor.c2100_ur_esterna')|float(default=0)/100 %}
+          {% set es = 6.112*e**((17.67*t)/(t+243.5)) %}
+          {% set ah = (216.7*((rh*es)/(t+273.15))) %}
+          {{ (ah/10)|round(2) }}
+      - name: "C2100 AH Interna"
+        unique_id: c2100_ah_in
+        unit_of_measurement: "g/kg"
+        state: |
+          {% set t = states('sensor.c2100_t_interna_media')|float(default=0) %}
+          {% set rh = states('sensor.c2100_ur_interna_media')|float(default=0)/100 %}
+          {% set es = 6.112*e**((17.67*t)/(t+243.5)) %}
+          {% set ah = (216.7*((rh*es)/(t+273.15))) %}
+          {{ (ah/10)|round(2) }}
+
+      ### Energia FV e consumi (sostituire con entità reali)
+      - name: "C2100 Potenza FV"
+        unique_id: c2100_pv_power
+        unit_of_measurement: "W"
+        state: "{{ states('sensor.solar_power') }}"
+      - name: "C2100 Consumo Casa"
+        unique_id: c2100_home_load
+        unit_of_measurement: "W"
+        state: "{{ states('sensor.house_load') }}"
+      - name: "C2100 Scambio Rete"
+        unique_id: c2100_grid_exchange
+        unit_of_measurement: "W"
+        state: "{{ states('sensor.grid_power') }}"
+      - name: "C2100 Surplus FV"
+        unique_id: c2100_surplus_w
+        unit_of_measurement: "W"
+        state: |
+          {% set pv = states('sensor.c2100_potenza_fv')|float(0) %}
+          {% set load = states('sensor.c2100_consumo_casa')|float(0) %}
+          {{ max(pv - load, 0)|round(0) }}
+
+      ### Overheating KPI (placeholder)
+      - name: "C2100 Overheating Media 2h"
+        unique_id: c2100_overheat_avg
+        unit_of_measurement: "°C"
+        state: "{{ states('sensor.c2100_t_interna_media') }}"
+        # Nota: usare sensori di media mobile (statistics/utility_meter) se disponibili.
+
+    binary_sensor:
+      - name: "C2100 Overheating"
+        unique_id: c2100_overheating
+        device_class: heat
+        state: |
+          {% set t = states('sensor.c2100_t_interna_media')|float(0) %}
+          {% set limit = states('input_number.c2100_overheat_temp')|float(25) %}
+          {{ t > limit }}
+      - name: "C2100 Comfort Termico"
+        unique_id: c2100_comfort_ok
+        device_class: cold
+        state: |
+          {% set season = states('input_select.c2100_season_mode') %}
+          {% set t = states('sensor.c2100_t_interna_media')|float(0) %}
+          {% set rh = states('sensor.c2100_ur_interna_media')|float(0) %}
+          {% set win_min = states('input_number.c2100_comfort_winter_min')|float(20) %}
+          {% set win_max = states('input_number.c2100_comfort_winter_max')|float(22) %}
+          {% set sum_min = states('input_number.c2100_comfort_summer_min')|float(24) %}
+          {% set sum_max = states('input_number.c2100_comfort_summer_max')|float(26) %}
+          {% set rh_min = states('input_number.c2100_humidity_min')|float(35) %}
+          {% set rh_max = states('input_number.c2100_humidity_max')|float(60) %}
+          {% set t_min = win_min if season == 'inverno' else sum_min %}
+          {% set t_max = win_max if season == 'inverno' else sum_max %}
+          {{ (t >= t_min and t <= t_max) and (rh >= rh_min and rh <= rh_max) }}
+      - name: "C2100 Surplus Disponibile"
+        unique_id: c2100_surplus_available
+        device_class: power
+        state: |
+          {% set surplus = states('sensor.c2100_surplus_fv')|float(0) %}
+          {% set min = states('input_number.c2100_surplus_min_w')|float(800) %}
+          {{ surplus >= min }}
+
+      - name: "C2100 AH Esterna <= Interna"
+        unique_id: c2100_ah_out_le_in
+        device_class: moisture
+        state: |
+          {% set out = states('sensor.c2100_ah_esterna')|float(0) %}
+          {% set inside = states('sensor.c2100_ah_interna')|float(0) %}
+          {{ out <= inside }}
+
+      - name: "C2100 Night Cooling Benefico"
+        unique_id: c2100_night_cooling_ok
+        device_class: running
+        state: |
+          {% set t_out = states('sensor.c2100_t_esterna')|float(0) %}
+          {% set t_in = states('sensor.c2100_t_interna_media')|float(0) %}
+          {% set delta = states('input_number.c2100_night_cooling_delta')|float(1.5) %}
+          {{ (t_out + delta) < t_in and (states('binary_sensor.c2100_ah_out_le_in') == 'on') }}

@@ -1,0 +1,60 @@
+### Lovelace: Casa 2100 overview futuristica
+title: "Casa 2100"
+views:
+  - title: Overview
+    path: casa2100
+    badges:
+      - binary_sensor.c2100_comfort_ok
+      - binary_sensor.c2100_surplus_available
+      - binary_sensor.c2100_overheating
+    cards:
+      - type: markdown
+        content: |
+          ## Sala di controllo
+          - Comfort: {{ states('binary_sensor.c2100_comfort_ok') }}
+          - Surplus FV: {{ states('sensor.c2100_surplus_fv') }} W
+          - Night cooling: {{ states('binary_sensor.c2100_night_cooling_ok') }}
+      - type: grid
+        columns: 2
+        square: false
+        cards:
+          - type: gauge
+            name: Comfort termico
+            entity: sensor.c2100_t_interna_media
+            min: 16
+            max: 30
+          - type: gauge
+            name: UR
+            entity: sensor.c2100_ur_interna_media
+            min: 20
+            max: 80
+          - type: gauge
+            name: FV live
+            entity: sensor.c2100_potenza_fv
+            max: 8000
+          - type: gauge
+            name: Consumo live
+            entity: sensor.c2100_consumo_casa
+            max: 8000
+      - type: entities
+        title: Master controls
+        entities:
+          - input_boolean.c2100_master_automation
+          - input_boolean.c2100_vmc_enable
+          - input_boolean.c2100_heating_enable
+          - input_boolean.c2100_ac_enable
+          - input_boolean.c2100_acs_enable
+      - type: entities
+        title: Strategie attive
+        entities:
+          - input_select.c2100_vmc_command
+          - input_select.c2100_ac_day_mode
+          - input_select.c2100_ac_night_mode
+          - input_number.c2100_surplus_min_w
+      - type: history-graph
+        hours_to_show: 12
+        entities:
+          - sensor.c2100_t_interna_media
+          - sensor.c2100_t_esterna
+          - sensor.c2100_surplus_fv
+          - water_heater.acs

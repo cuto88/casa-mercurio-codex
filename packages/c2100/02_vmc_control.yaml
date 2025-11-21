@@ -1,0 +1,99 @@
+### PACKAGE: Logica VMC Passivhaus oriented
+automation:
+  - id: c2100_vmc_auto_speed
+    alias: "C2100 | VMC auto comfort"
+    description: "Scala la VMC in base a comfort, AH e overheating"
+    mode: restart
+    trigger:
+      - platform: state
+        entity_id:
+          - sensor.c2100_t_interna_media
+          - sensor.c2100_t_esterna
+          - sensor.c2100_ur_interna_media
+          - sensor.c2100_ur_esterna
+          - binary_sensor.c2100_overheating
+          - binary_sensor.c2100_night_cooling_ok
+          - binary_sensor.c2100_comfort_ok
+      - platform: time_pattern
+        minutes: "/10"
+    condition:
+      - condition: state
+        entity_id: input_boolean.c2100_master_automation
+        state: "on"
+      - condition: state
+        entity_id: input_boolean.c2100_vmc_enable
+        state: "on"
+    action:
+      - variables:
+          t_in: "{{ states('sensor.c2100_t_interna_media')|float(0) }}"
+          t_out: "{{ states('sensor.c2100_t_esterna')|float(0) }}"
+          rh_in: "{{ states('sensor.c2100_ur_interna_media')|float(0) }}"
+          rh_max: "{{ states('input_number.c2100_humidity_max')|float(60) }}"
+          rh_min: "{{ states('input_number.c2100_humidity_min')|float(35) }}"
+          overheat: "{{ is_state('binary_sensor.c2100_overheating','on') }}"
+          nightcool: "{{ is_state('binary_sensor.c2100_night_cooling_ok','on') }}"
+          comfort_ok: "{{ is_state('binary_sensor.c2100_comfort_ok','on') }}"
+          ah_better: "{{ is_state('binary_sensor.c2100_ah_out_le_in','on') }}"
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ overheat and nightcool }}"
+            sequence:
+              - service: input_select.select_option
+                target:
+                  entity_id: input_select.c2100_vmc_command
+                data:
+                  option: BOOST
+          - conditions:
+              - condition: template
+                value_template: "{{ not comfort_ok and ah_better and (t_out < t_in) }}"
+            sequence:
+              - service: input_select.select_option
+                target:
+                  entity_id: input_select.c2100_vmc_command
+                data:
+                  option: V2
+          - conditions:
+              - condition: template
+                value_template: "{{ (rh_in > rh_max) and ah_better }}"
+            sequence:
+              - service: input_select.select_option
+                target:
+                  entity_id: input_select.c2100_vmc_command
+                data:
+                  option: V2
+          - conditions:
+              - condition: template
+                value_template: "{{ comfort_ok and rh_in >= rh_min and rh_in <= rh_max }}"
+            sequence:
+              - service: input_select.select_option
+                target:
+                  entity_id: input_select.c2100_vmc_command
+                data:
+                  option: V1
+        default:
+          - service: input_select.select_option
+            target:
+              entity_id: input_select.c2100_vmc_command
+            data:
+              option: V1
+
+  - id: c2100_vmc_push_to_device
+    alias: "C2100 | VMC -> device select"
+    description: "Invia il comando VMC a un select di velocità (personalizzare entity_id)"
+    trigger:
+      - platform: state
+        entity_id: input_select.c2100_vmc_command
+    condition:
+      - condition: state
+        entity_id: input_boolean.c2100_master_automation
+        state: "on"
+      - condition: state
+        entity_id: input_boolean.c2100_vmc_enable
+        state: "on"
+    action:
+      - service: select.select_option
+        target:
+          entity_id: select.vmc_speed
+        data:
+          option: "{{ trigger.to_state.state }}"

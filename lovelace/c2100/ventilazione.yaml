@@ -1,0 +1,53 @@
+### Lovelace: Ventilazione & Qualità Aria
+title: "C2100 | Ventilazione"
+views:
+  - title: Ventilazione
+    path: vmc
+    badges:
+      - binary_sensor.c2100_comfort_ok
+      - binary_sensor.c2100_night_cooling_ok
+      - binary_sensor.c2100_ah_out_le_in
+    cards:
+      - type: grid
+        columns: 2
+        square: false
+        cards:
+          - type: gauge
+            name: T interna
+            entity: sensor.c2100_t_interna_media
+            min: 16
+            max: 30
+          - type: gauge
+            name: UR interna
+            entity: sensor.c2100_ur_interna_media
+            min: 20
+            max: 80
+          - type: gauge
+            name: AH out
+            entity: sensor.c2100_ah_esterna
+            min: 0
+            max: 20
+          - type: gauge
+            name: AH in
+            entity: sensor.c2100_ah_interna
+            min: 0
+            max: 20
+      - type: entities
+        title: Stato VMC
+        entities:
+          - input_boolean.c2100_vmc_enable
+          - input_select.c2100_vmc_command
+          - binary_sensor.c2100_overheating
+          - binary_sensor.c2100_comfort_ok
+      - type: entities
+        title: Consigli finestre
+        entities:
+          - binary_sensor.c2100_finestre_aprire
+          - binary_sensor.c2100_night_cooling_ok
+          - input_boolean.c2100_windows_advice_enable
+      - type: history-graph
+        entities:
+          - sensor.c2100_t_interna_media
+          - sensor.c2100_t_esterna
+          - binary_sensor.c2100_overheating
+        hours_to_show: 24
